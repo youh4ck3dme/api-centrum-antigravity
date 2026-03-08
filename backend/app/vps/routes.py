@@ -6,6 +6,7 @@ import ssl
 import socket
 import requests
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter
 
 from ..websupport import WebsupportService
@@ -21,7 +22,7 @@ def get_ssl_expiry_days(hostname: str):
     try:
         ctx = ssl.create_default_context()
         s = ctx.wrap_socket(socket.socket(), server_hostname=hostname)
-        s.settimeout(5)
+        s.settimeout(4)
         s.connect((hostname, 443))
         cert = s.getpeercert()
         s.close()
@@ -34,16 +35,29 @@ def get_ssl_expiry_days(hostname: str):
 def ping_domain(domain: str):
     """Returns (http_status_code, https_reachable)."""
     try:
-        r = requests.get(f"https://{domain}", timeout=5, allow_redirects=True)
+        r = requests.get(f"https://{domain}", timeout=4, allow_redirects=True)
         return r.status_code, True
     except requests.exceptions.SSLError:
         try:
-            r = requests.get(f"http://{domain}", timeout=5)
+            r = requests.get(f"http://{domain}", timeout=4)
             return r.status_code, False
         except Exception:
             return None, False
     except Exception:
         return None, False
+
+
+def check_domain(name: str, forpsi_names: set) -> dict:
+    """Check a single domain — ping + SSL. Called in parallel."""
+    status_code, https_ok = ping_domain(name)
+    ssl_days = get_ssl_expiry_days(name) if https_ok else None
+    return {
+        "name": name,
+        "registrar": "Forpsi" if name in forpsi_names else "Websupport",
+        "http_status": status_code,
+        "https_reachable": https_ok,
+        "ssl_expiry_days": ssl_days,
+    }
 
 
 @router.get("/vps/status")
@@ -74,20 +88,25 @@ def vps_status():
     now = datetime.utcnow().timestamp()
     api_calls_24h = sum(1 for m in performance_metrics if now - m["timestamp"] < 86400)
 
-    domains_data = []
-    for name in domain_names:
-        status_code, https_ok = ping_domain(name)
-        ssl_days = get_ssl_expiry_days(name) if https_ok else None
-        registrar = "Forpsi" if name in forpsi_names else "Websupport"
-        domains_data.append(
-            {
-                "name": name,
-                "registrar": registrar,
-                "http_status": status_code,
-                "https_reachable": https_ok,
-                "ssl_expiry_days": ssl_days,
-            }
-        )
+    # --- Parallel domain checks ---
+    domains_data = [None] * len(domain_names)
+    with ThreadPoolExecutor(max_workers=min(len(domain_names), 20)) as executor:
+        future_to_idx = {
+            executor.submit(check_domain, name, forpsi_names): i
+            for i, name in enumerate(domain_names)
+        }
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            try:
+                domains_data[idx] = future.result()
+            except Exception:
+                domains_data[idx] = {
+                    "name": domain_names[idx],
+                    "registrar": "Forpsi" if domain_names[idx] in forpsi_names else "Websupport",
+                    "http_status": None,
+                    "https_reachable": False,
+                    "ssl_expiry_days": None,
+                }
 
     return {
         "server": {"ip": VPS_IP, "hostname": "nexify-studio.tech"},
