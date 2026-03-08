@@ -68,6 +68,7 @@
           <thead>
             <tr>
               <th>Doména</th>
+              <th>Registrar</th>
               <th>HTTP status</th>
               <th>HTTPS</th>
               <th>SSL expiry</th>
@@ -77,6 +78,9 @@
           <tbody>
             <tr v-for="d in data.domains" :key="d.name">
               <td class="mono">{{ d.name }}</td>
+              <td>
+                <span :class="d.registrar === 'Forpsi' ? 'reg-forpsi' : 'reg-ws'">{{ d.registrar }}</span>
+              </td>
               <td>
                 <span v-if="d.http_status" :class="d.http_status < 400 ? 'badge-green' : 'badge-red'">
                   {{ d.http_status }}
@@ -213,6 +217,9 @@ onMounted(fetchStatus);
 
 .status-online  { color: #4ade80; font-weight: 700; font-size: 0.8rem; }
 .status-offline { color: #f87171; font-weight: 700; font-size: 0.8rem; }
+
+.reg-ws     { color: #60a5fa; font-size: 0.75rem; font-weight: 600; }
+.reg-forpsi { color: #c084fc; font-size: 0.75rem; font-weight: 600; }
 
 .empty-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;

@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     WEBSUPPORT_DYNDNS_KEY: str = ""
     WEBSUPPORT_DYNDNS_SECRET: str = ""
 
+    # Forpsi domains (manual list, comma-separated) — Forpsi has no REST API
+    FORPSI_DOMAINS: str = ""
+
     DATABASE_URL: str = "sqlite:///./test.db"
     CERTBOT_EMAIL: str = ""
     ENV: str = "development"

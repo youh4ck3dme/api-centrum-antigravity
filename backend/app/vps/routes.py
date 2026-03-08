@@ -1,5 +1,5 @@
 """
-VPS Monitor — pings all Websupport domains and checks SSL expiry.
+VPS Monitor — pings all domains (Websupport API + Forpsi manual list) and checks SSL expiry.
 """
 
 import ssl
@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 from ..websupport import WebsupportService
 from ..metrics import performance_metrics
+from ..config import settings
 
 router = APIRouter(tags=["VPS"])
 
@@ -47,18 +48,28 @@ def ping_domain(domain: str):
 
 @router.get("/vps/status")
 def vps_status():
-    """Return VPS server info + status of all Websupport domains."""
-    domain_names = []
+    """Return VPS server info + status of all domains (Websupport + Forpsi)."""
+    domain_names: list[str] = []
+
+    # --- Websupport (REST API) ---
+    ws_names: set[str] = set()
     try:
         ws_result = WebsupportService.get_domains()
         items = ws_result.get("items", [])
-        domain_names = [
+        ws_names = {
             x.get("name")
             for x in items
             if x.get("serviceName") == "domain" and x.get("name")
-        ]
+        }
+        domain_names += list(ws_names)
     except Exception:
         pass
+
+    # --- Forpsi (manual list from FORPSI_DOMAINS env var) ---
+    forpsi_names: set[str] = set()
+    if settings.FORPSI_DOMAINS:
+        forpsi_names = {d.strip() for d in settings.FORPSI_DOMAINS.split(",") if d.strip()}
+        domain_names += [d for d in forpsi_names if d not in ws_names]
 
     now = datetime.utcnow().timestamp()
     api_calls_24h = sum(1 for m in performance_metrics if now - m["timestamp"] < 86400)
@@ -67,9 +78,11 @@ def vps_status():
     for name in domain_names:
         status_code, https_ok = ping_domain(name)
         ssl_days = get_ssl_expiry_days(name) if https_ok else None
+        registrar = "Forpsi" if name in forpsi_names else "Websupport"
         domains_data.append(
             {
                 "name": name,
+                "registrar": registrar,
                 "http_status": status_code,
                 "https_reachable": https_ok,
                 "ssl_expiry_days": ssl_days,
