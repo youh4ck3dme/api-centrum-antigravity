@@ -40,6 +40,7 @@
         <Performance v-else-if="currentTab === 'performance'" />
         <VPS v-else-if="currentTab === 'vps'" />
         <Radar v-else-if="currentTab === 'radar'" />
+        <Notes v-else-if="currentTab === 'notes'" />
       </transition>
     </main>
 
@@ -67,6 +68,7 @@ import Backups from "./views/Backups.vue";
 import Performance from "./views/Performance.vue";
 import VPS from "./views/VPS.vue";
 import Radar from "./views/Radar.vue";
+import Notes from "./views/Notes.vue";
 import Login from "./views/Login.vue";
 
 const isAuthenticated = ref(!!localStorage.getItem('access_token'));
@@ -79,6 +81,7 @@ const tabs = [
   { id: 'performance', name: 'Výkon',     icon: '⚡' },
   { id: 'vps',         name: 'VPS',       icon: '🖥️' },
   { id: 'radar',       name: 'Radar',     icon: '🛡️' },
+  { id: 'notes',       name: 'Poznámky',  icon: '📝' },
 ];
 </script>
 
