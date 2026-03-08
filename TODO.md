@@ -1,56 +1,28 @@
-# TODO - API Centrum PWA Blueprint
+# API Centrum — Roadmap
 
-## Task
+## Nápady na ďalší vývoj
 
-Create complete blueprint for API Centrum PWA with WordPress integration - FastAPI backend + Vue 3 PWA frontend + Websupport API
+- [ ] 🔴 **Live DNS Threat Monitor (WebSocket)**
+  Real-time sledovanie DNS zmien na všetkých doménach každých 60 sekúnd.
+  Ak niekto zmení A record, MX record alebo pridá podozrivý CNAME — okamžitá push
+  notifikácia v paneli + email alert. Detekcia DNS hijackingu, typosquattingu
+  a subdomain takeover. Dashboard sa živí z WebSocket streamu, nie polling.
 
-## Files to Create
+- [ ] 🤖 **GPT-4 Powered SSL/DNS Autopilot**
+  Pripoj OpenAI API — pri každom security audite nech AI reálne opraví zistené
+  problémy (chýbajúce SPF, DKIM, DMARC, CAA záznamy). Nielen audit ale aj
+  autofix s vysvetlením čo zmenil a prečo. Chat interface kde sa pýtaš
+  „Prečo moja doména nedostáva emaily?" a AI pozrie DNS a odpovie.
 
-### Backend Files
+- [ ] ⚡ **One-Click VPS Provisioning**
+  Z panelu klikneš „Nový server" → vybereš lokáciu → API zavolá Hetzner/DigitalOcean
+  API, vytvorí VPS, automaticky nakonfiguruje nginx, nainštaluje SSL cert cez
+  Let's Encrypt, vytvorí A záznam na Websupport a nasadí Docker stack.
+  Celé za ~3 minúty bez dotyku terminálu.
 
-- [ ] backend/app/**init**.py
-- [ ] backend/app/config.py
-- [ ] backend/app/auth.py
-- [ ] backend/app/db.py
-- [ ] backend/app/models.py
-- [ ] backend/app/crud.py
-- [ ] backend/app/deps.py
-- [ ] backend/app/schemas.py
-- [ ] backend/app/main.py
-- [ ] backend/app/domains/**init**.py
-- [ ] backend/app/domains/routes.py
-- [ ] backend/app/domains/services.py
-- [ ] backend/app/domains/models.py
-- [ ] backend/app/ssl/**init**.py
-- [ ] backend/app/ssl/routes.py
-- [ ] backend/app/ssl/services.py
-- [ ] backend/app/monitoring/**init**.py
-- [ ] backend/app/monitoring/tasks.py
-- [ ] backend/app/users/**init**.py
-- [ ] backend/app/users/routes.py
-- [ ] backend/app/websupport.py
-- [ ] backend/requirements.txt
-- [ ] backend/Dockerfile
-- [ ] backend/.env.example
-- [ ] backend/alembic/env.py
-- [ ] backend/alembic/script.py.mako
-- [ ] backend/alembic/versions/0001_create_users_roles.py
-- [ ] backend/scripts/create_admin.py
-
-### Frontend Files
-
-- [ ] frontend/package.json
-- [ ] frontend/vite.config.js
-- [ ] frontend/index.html
-- [ ] frontend/Dockerfile
-- [ ] frontend/src/main.js
-- [ ] frontend/src/App.vue
-- [ ] frontend/src/api/api.js
-- [ ] frontend/src/views/Domains.vue
-- [ ] frontend/public/manifest.webmanifest
-- [ ] frontend/public/robots.txt
-
-### Root Files
-
-- [ ] docker-compose.yml
-- [ ] README.md
+- [ ] 📊 **Domain Portfolio Intelligence**
+  Analýza expirácie domén s predikciou — ktoré domény sú rizikové (expirujú
+  za menej ako 30 dní), koľko ťa stoja ročne, hodnota portfolia. Automatické
+  obnovenie cez Websupport API ak je dostupné. Plus competitor monitoring —
+  sleduj či niekto nezaregistroval podobnú doménu ako tvoja
+  (napr. `nexify-studios.tech`, `nexify-studio.sk`).
