@@ -4,13 +4,15 @@ Provides endpoints for dashboard data and statistics
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from .db import get_db
 from .models import User, AuditLog
 from .auth_neon import get_current_user_or_neon
+from .auth import verify_password
 from .websupport import WebsupportService
 from typing import List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
@@ -20,13 +22,18 @@ class DashboardStats:
     
     def get_user_stats(self, user_id: int) -> Dict[str, Any]:
         """Get user-specific statistics"""
-        # Count total domains (would need to track in local DB or fetch from Websupport)
-        total_domains = 0  # This would be calculated from actual data
+        # Count total domains from Websupport API
+        try:
+            ws_result = WebsupportService.get_domains()
+            items = ws_result.get("items", [])
+            total_domains = sum(1 for x in items if x.get("serviceName") == "domain")
+        except Exception:
+            total_domains = 0
         
         # Count recent activities
         recent_activities = self.db.query(AuditLog).filter(
             AuditLog.user_id == user_id,
-            AuditLog.created_at >= datetime.utcnow() - timedelta(days=7)
+            AuditLog.created_at >= datetime.now(timezone.utc) - timedelta(days=7)
         ).count()
         
         # Get last login (simplified)
@@ -36,7 +43,7 @@ class DashboardStats:
             "total_domains": total_domains,
             "recent_activities": recent_activities,
             "last_login": user.created_at if user else None,
-            "account_type": "local" if user and user.hashed_password != "neon_auth_temp" else "neon_auth"
+            "account_type": "neon_auth" if user and verify_password("neon_auth_temp", user.hashed_password) else "local"
         }
     
     def get_system_health(self) -> Dict[str, Any]:
@@ -53,20 +60,20 @@ class DashboardStats:
         # Check database connectivity
         db_status = "unknown"
         try:
-            self.db.execute("SELECT 1").scalar()
+            self.db.execute(text("SELECT 1")).scalar()
             db_status = "online"
         except Exception:
             db_status = "offline"
         
         # Check Neon Auth trial status
-        from ..neon_auth import is_neon_trial_active
+        from .neon_auth import is_neon_trial_active
         neon_status = "active" if is_neon_trial_active() else "inactive"
         
         return {
             "websupport_api": websupport_status,
             "database": db_status,
             "neon_auth_trial": neon_status,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     
     def get_recent_activities(self, user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
@@ -98,7 +105,7 @@ async def get_dashboard_stats(
         return {
             "user_stats": user_stats,
             "system_health": system_health,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard stats: {str(e)}")

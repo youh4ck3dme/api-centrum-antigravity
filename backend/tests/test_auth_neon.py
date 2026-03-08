@@ -16,7 +16,6 @@ from app.neon_auth import (
     is_neon_trial_active,
     get_login_url
 )
-from tests import TEST_CONFIG
 
 
 class TestNeonAuthService:

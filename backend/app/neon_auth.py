@@ -3,6 +3,7 @@ Neon Auth integration module
 Handles authentication with Neon Auth for trial period
 """
 
+import json
 import jwt
 import requests
 from datetime import datetime, timezone
@@ -52,7 +53,7 @@ class NeonAuthService:
             key = None
             for jwk in jwks.get("keys", []):
                 if jwk.get("kid") == kid:
-                    key = jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
+                    key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))
                     break
             
             if not key:

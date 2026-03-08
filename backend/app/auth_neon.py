@@ -11,7 +11,7 @@ from .crud import CRUDUser
 from .db import get_db
 from sqlalchemy.orm import Session
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 def get_neon_auth_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -21,6 +21,12 @@ def get_neon_auth_user(
     Get user from Neon Auth token
     Falls back to local auth if Neon Auth trial is not active
     """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     
     # Check if Neon Auth trial is active
@@ -71,6 +77,12 @@ def get_current_user_or_neon(
     """
     Try Neon Auth first, fall back to local JWT auth
     """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     
     # Try Neon Auth first

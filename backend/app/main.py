@@ -20,6 +20,23 @@ from .config import settings
 
 from .metrics import performance_metrics
 
+settings.validate_security_settings()
+
+BASE_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
+CSP_HEADER = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'; "
+    "object-src 'none'; "
+    "form-action 'self'"
+)
+DOCS_PREFIXES = ("/docs", "/redoc", "/openapi.json")
+
 app = FastAPI(title="Domain & SSL Manager API")
 instrumentor = Instrumentator()
 instrumentor.instrument(app).expose(app)
@@ -33,7 +50,7 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     
     # Uložíme metriku (iba pre /api endpointy)
-    if "api" in str(request.url):
+    if request.url.path.startswith("/api"):
         performance_metrics.append({
             "path": str(request.url.path),
             "method": request.method,
@@ -44,7 +61,19 @@ async def add_process_time_header(request: Request, call_next):
         # Keep only last 100
         if len(performance_metrics) > 100:
             performance_metrics.pop(0)
-            
+
+    for header, value in BASE_SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+
+    if settings.ENV.lower() == "production":
+        response.headers.setdefault(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains; preload",
+        )
+
+    if not request.url.path.startswith(DOCS_PREFIXES):
+        response.headers.setdefault("Content-Security-Policy", CSP_HEADER)
+
     response.headers["X-Process-Time"] = str(process_time)
     return response
 

@@ -23,6 +23,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
     role = relationship("Role")
+    domains = relationship("Domain", back_populates="user")
     totp_secret = Column(String(32), nullable=True)
     two_factor_enabled = Column(Boolean, default=False)
 

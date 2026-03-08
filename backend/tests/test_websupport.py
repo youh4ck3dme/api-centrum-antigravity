@@ -1,389 +1,343 @@
 """
-Test suite for Websupport API integration
-Tests API authentication, domain operations, and error handling
+Test suite for Websupport API v1 integration
+Tests authentication, DNS operations, and error handling
 """
 
+import hmac
+import hashlib
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fastapi import HTTPException
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, HTTPError
 
-from app.websupport import (
-    generate_websupport_signature,
-    make_websupport_request,
-    WebsupportService
-)
 from tests import TEST_CONFIG
+from app.websupport import (
+    _sign,
+    make_websupport_request,
+    WebsupportService,
+)
 
 
 class TestWebsupportSignature:
-    """Test Websupport API signature generation"""
-    
-    def test_signature_generation(self):
-        """Test signature generation according to Websupport spec"""
-        api_key = "test_api_key"
+    """Test Websupport API v1 signature generation"""
+
+    def test_sign_returns_tuple(self):
+        """_sign returns (signature_hex, date_header, timestamp)"""
+        sig, date_hdr, ts = _sign("test_secret", "GET", "/v1/user/self")
+        assert isinstance(sig, str)
+        assert len(sig) == 40          # SHA1 hex
+        assert isinstance(date_hdr, str)
+        assert isinstance(ts, int)
+
+    def test_sign_hmac_correctness(self):
+        """Signature matches manually computed HMAC-SHA1"""
+        import time
         secret = "test_secret"
         method = "GET"
-        path = "/v2/service/domains"
-        
-        signature, x_date, timestamp = generate_websupport_signature(api_key, secret, method, path)
-        
-        assert isinstance(signature, str)
-        assert len(signature) > 0
-        assert isinstance(x_date, str)
-        assert isinstance(timestamp, int)
-        
-        # Verify signature format (SHA1 hex digest)
-        assert len(signature) == 40  # SHA1 hex is 40 characters
-    
-    def test_signature_with_query(self):
-        """Test signature generation with query parameters"""
-        api_key = "test_api_key"
-        secret = "test_secret"
-        method = "GET"
-        path = "/v2/service/domains"
-        query = "?page=1&limit=10"
-        
-        # Note: query is not included in canonical request for signature
-        signature, x_date, timestamp = generate_websupport_signature(api_key, secret, method, path)
-        
-        assert isinstance(signature, str)
-        assert len(signature) > 0
-    
-    def test_signature_different_methods(self):
-        """Test signature generation with different HTTP methods"""
-        api_key = "test_api_key"
-        secret = "test_secret"
-        path = "/v2/service/domains"
-        
-        methods = ["GET", "POST", "PUT", "DELETE"]
-        signatures = []
-        
-        for method in methods:
-            signature, _, _ = generate_websupport_signature(api_key, secret, method, path)
-            signatures.append(signature)
-        
-        # Each method should produce different signature
-        assert len(set(signatures)) == len(methods)
-    
-    def test_signature_different_paths(self):
-        """Test signature generation with different paths"""
-        api_key = "test_api_key"
-        secret = "test_secret"
-        method = "GET"
-        
-        paths = ["/v2/service/domains", "/v2/user/me", "/v2/service/domains/123"]
-        signatures = []
-        
-        for path in paths:
-            signature, _, _ = generate_websupport_signature(api_key, secret, method, path)
-            signatures.append(signature)
-        
-        # Each path should produce different signature
-        assert len(set(signatures)) == len(paths)
+        path = "/v1/user/self"
+
+        with patch("app.websupport.time.time", return_value=1700000000):
+            sig, _, ts = _sign(secret, method, path)
+
+        canonical = f"{method} {path} 1700000000"
+        expected = hmac.new(
+            secret.encode("UTF-8"),
+            canonical.encode("UTF-8"),
+            hashlib.sha1,
+        ).hexdigest()
+        assert sig == expected
+
+    def test_sign_different_methods_produce_different_sigs(self):
+        """Each HTTP method produces a unique signature"""
+        with patch("app.websupport.time.time", return_value=1700000000):
+            sigs = [_sign("secret", m, "/v1/user/self")[0] for m in ["GET", "POST", "PUT", "DELETE"]]
+        assert len(set(sigs)) == 4
+
+    def test_sign_different_paths_produce_different_sigs(self):
+        """Each path produces a unique signature"""
+        paths = ["/v1/user/self", "/v1/user/self/service", "/v1/user/self/zone/example.sk/record"]
+        with patch("app.websupport.time.time", return_value=1700000000):
+            sigs = [_sign("secret", "GET", p)[0] for p in paths]
+        assert len(set(sigs)) == 3
+
+    def test_sign_date_header_format(self):
+        """Date header must be RFC 2822 (e.g. 'Sun, 01 Jan 2023 12:00:00 GMT')"""
+        _, date_hdr, _ = _sign("secret", "GET", "/v1/user/self")
+        # Must contain GMT and have a comma (RFC 2822)
+        assert "GMT" in date_hdr
+        assert "," in date_hdr
 
 
 class TestWebsupportRequest:
-    """Test Websupport API request handling"""
-    
-    @patch('app.websupport.requests.request')
-    def test_successful_request(self, mock_request):
-        """Test successful API request"""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.text = '{"success": true, "data": []}'
-        mock_response.json.return_value = {"success": true, "data": []}
-        mock_request.return_value = mock_response
-        
-        result = make_websupport_request(
-            "test_key", "test_secret", "GET", "/v2/service/domains"
-        )
-        
-        assert result == {"success": true, "data": []}
-        mock_request.assert_called_once()
-    
-    @patch('app.websupport.requests.request')
-    def test_empty_response(self, mock_request):
-        """Test request with empty response"""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.text = ""
-        mock_request.return_value = mock_response
-        
-        result = make_websupport_request(
-            "test_key", "test_secret", "GET", "/v2/service/domains"
-        )
-        
+    """Test make_websupport_request — low-level HTTP helper"""
+
+    @patch("app.websupport.requests.request")
+    def test_successful_get(self, mock_req):
+        mock_resp = Mock()
+        mock_resp.status_code = 200
+        mock_resp.text = '{"id": 1}'
+        mock_resp.json.return_value = {"id": 1}
+        mock_req.return_value = mock_resp
+
+        result = make_websupport_request("key", "secret", "GET", "/v1/user/self")
+        assert result == {"id": 1}
+        mock_req.assert_called_once()
+
+    @patch("app.websupport.requests.request")
+    def test_empty_response_returns_empty_dict(self, mock_req):
+        mock_resp = Mock()
+        mock_resp.status_code = 204
+        mock_resp.text = ""
+        mock_req.return_value = mock_resp
+
+        result = make_websupport_request("key", "secret", "DELETE", "/v1/user/self/zone/x/record/1")
         assert result == {}
-    
-    @patch('app.websupport.requests.request')
-    def test_401_error(self, mock_request):
-        """Test 401 Unauthorized error"""
-        mock_response = Mock()
-        mock_response.status_code = 401
-        mock_response.text = "Unauthorized"
-        mock_request.return_value = mock_response
-        
-        with pytest.raises(HTTPException) as exc_info:
-            make_websupport_request(
-                "test_key", "test_secret", "GET", "/v2/service/domains"
-            )
-        
-        assert exc_info.value.status_code == 401
-        assert "Invalid Websupport API credentials" in str(exc_info.value.detail)
-    
-    @patch('app.websupport.requests.request')
-    def test_403_error(self, mock_request):
-        """Test 403 Forbidden error"""
-        mock_response = Mock()
-        mock_response.status_code = 403
-        mock_response.text = "Forbidden"
-        mock_request.return_value = mock_response
-        
-        with pytest.raises(HTTPException) as exc_info:
-            make_websupport_request(
-                "test_key", "test_secret", "GET", "/v2/service/domains"
-            )
-        
-        assert exc_info.value.status_code == 403
-        assert "Access forbidden to Websupport API" in str(exc_info.value.detail)
-    
-    @patch('app.websupport.requests.request')
-    def test_429_error(self, mock_request):
-        """Test 429 Too Many Requests error"""
-        mock_response = Mock()
-        mock_response.status_code = 429
-        mock_response.text = "Rate limit exceeded"
-        mock_request.return_value = mock_response
-        
-        with pytest.raises(HTTPException) as exc_info:
-            make_websupport_request(
-                "test_key", "test_secret", "GET", "/v2/service/domains"
-            )
-        
-        assert exc_info.value.status_code == 429
-        assert "Rate limit exceeded for Websupport API" in str(exc_info.value.detail)
-    
-    @patch('app.websupport.requests.request')
-    def test_network_error(self, mock_request):
-        """Test network error handling"""
-        mock_request.side_effect = RequestException("Connection failed")
-        
-        with pytest.raises(HTTPException) as exc_info:
-            make_websupport_request(
-                "test_key", "test_secret", "GET", "/v2/service/domains"
-            )
-        
-        assert exc_info.value.status_code == 500
-        assert "Network error" in str(exc_info.value.detail)
-    
-    @patch('app.websupport.requests.request')
-    def test_other_http_error(self, mock_request):
-        """Test other HTTP errors"""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal Server Error"
-        mock_request.return_value = mock_response
-        
-        with pytest.raises(HTTPException) as exc_info:
-            make_websupport_request(
-                "test_key", "test_secret", "GET", "/v2/service/domains"
-            )
-        
-        assert exc_info.value.status_code == 500
-        assert "Websupport API error" in str(exc_info.value.detail)
-    
-    @patch('app.websupport.requests.request')
-    def test_request_parameters(self, mock_request):
-        """Test that request is called with correct parameters"""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.text = '{"success": true}'
-        mock_response.json.return_value = {"success": true}
-        mock_request.return_value = mock_response
-        
-        make_websupport_request(
-            "test_key", "test_secret", "GET", "/v2/service/domains"
-        )
-        
-        # Verify request parameters
-        call_args = mock_request.call_args
-        assert call_args[1]["method"] == "GET"
-        assert call_args[1]["url"] == "https://rest.websupport.sk/v2/service/domains"
-        assert "Content-Type" in call_args[1]["headers"]
-        assert "Accept" in call_args[1]["headers"]
-        assert "X-Date" in call_args[1]["headers"]
-        assert call_args[1]["auth"] == ("test_key", call_args[1]["headers"]["X-Date"])
-        assert call_args[1]["timeout"] == 30
+
+    @patch("app.websupport.requests.request")
+    def test_uses_date_header_not_x_date(self, mock_req):
+        """v1 must send 'Date' header, NOT 'X-Date'"""
+        mock_resp = Mock()
+        mock_resp.status_code = 200
+        mock_resp.text = "{}"
+        mock_resp.json.return_value = {}
+        mock_req.return_value = mock_resp
+
+        make_websupport_request("key", "secret", "GET", "/v1/user/self")
+
+        headers = mock_req.call_args[1]["headers"]
+        assert "Date" in headers
+        assert "X-Date" not in headers
+
+    @patch("app.websupport.requests.request")
+    def test_auth_tuple_is_key_and_hmac(self, mock_req):
+        """auth=(api_key, hmac_signature)"""
+        mock_resp = Mock()
+        mock_resp.status_code = 200
+        mock_resp.text = "{}"
+        mock_resp.json.return_value = {}
+        mock_req.return_value = mock_resp
+
+        make_websupport_request("my_key", "my_secret", "GET", "/v1/user/self")
+
+        auth = mock_req.call_args[1]["auth"]
+        assert auth[0] == "my_key"
+        assert isinstance(auth[1], str) and len(auth[1]) == 40  # HMAC hex
+
+    @patch("app.websupport.requests.request")
+    def test_401_raises_http_exception(self, mock_req):
+        mock_resp = Mock()
+        mock_resp.status_code = 401
+        mock_resp.text = "Unauthorized"
+        mock_resp.raise_for_status.side_effect = HTTPError(response=mock_resp)
+        mock_req.return_value = mock_resp
+
+        with pytest.raises(HTTPException) as exc:
+            make_websupport_request("k", "s", "GET", "/v1/user/self")
+        assert exc.value.status_code == 401
+        assert "Invalid Websupport API credentials" in exc.value.detail
+
+    @patch("app.websupport.requests.request")
+    def test_403_raises_http_exception(self, mock_req):
+        mock_resp = Mock()
+        mock_resp.status_code = 403
+        mock_resp.text = "Forbidden"
+        mock_resp.raise_for_status.side_effect = HTTPError(response=mock_resp)
+        mock_req.return_value = mock_resp
+
+        with pytest.raises(HTTPException) as exc:
+            make_websupport_request("k", "s", "GET", "/v1/user/self")
+        assert exc.value.status_code == 403
+
+    @patch("app.websupport.requests.request")
+    def test_429_raises_http_exception(self, mock_req):
+        mock_resp = Mock()
+        mock_resp.status_code = 429
+        mock_resp.text = "Rate limit"
+        mock_resp.raise_for_status.side_effect = HTTPError(response=mock_resp)
+        mock_req.return_value = mock_resp
+
+        with pytest.raises(HTTPException) as exc:
+            make_websupport_request("k", "s", "GET", "/v1/user/self")
+        assert exc.value.status_code == 429
+
+    @patch("app.websupport.requests.request")
+    def test_network_error_raises_500(self, mock_req):
+        mock_req.side_effect = RequestException("Connection refused")
+
+        with pytest.raises(HTTPException) as exc:
+            make_websupport_request("k", "s", "GET", "/v1/user/self")
+        assert exc.value.status_code == 500
+        assert "Network error" in exc.value.detail
+
+    @patch("app.websupport.requests.request")
+    def test_500_server_error(self, mock_req):
+        mock_resp = Mock()
+        mock_resp.status_code = 500
+        mock_resp.text = "Server Error"
+        mock_resp.raise_for_status.side_effect = HTTPError(response=mock_resp)
+        mock_req.return_value = mock_resp
+
+        with pytest.raises(HTTPException) as exc:
+            make_websupport_request("k", "s", "GET", "/v1/user/self")
+        assert exc.value.status_code == 500
+        assert "Websupport API error" in exc.value.detail
 
 
 class TestWebsupportService:
-    """Test WebsupportService class methods"""
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_get_domains(self, mock_request):
-        """Test get_domains method"""
-        mock_request.return_value = {"domains": [{"id": 1, "name": "example.com"}]}
-        
+    """Test WebsupportService — v1 endpoints"""
+
+    @patch("app.websupport.make_websupport_request")
+    def test_verify_connection_calls_user_self(self, mock_req):
+        mock_req.return_value = {"id": 123, "login": "test@example.com"}
+        result = WebsupportService.verify_connection()
+        assert result["id"] == 123
+        mock_req.assert_called_once_with(
+            TEST_CONFIG["WEBSUPPORT_API_KEY"],
+            TEST_CONFIG["WEBSUPPORT_SECRET"],
+            "GET", "/v1/user/self", "", None,
+        )
+
+    @patch("app.websupport.make_websupport_request")
+    def test_get_domains_calls_service_endpoint(self, mock_req):
+        mock_req.return_value = {"items": [{"id": 8539136, "name": "h4ck3d.me", "serviceName": "domain"}]}
         result = WebsupportService.get_domains()
-        
-        assert "domains" in result
-        assert len(result["domains"]) == 1
-        assert result["domains"][0]["name"] == "example.com"
-        mock_request.assert_called_once_with(
+        assert "items" in result
+        assert result["items"][0]["name"] == "h4ck3d.me"
+        mock_req.assert_called_once_with(
             TEST_CONFIG["WEBSUPPORT_API_KEY"],
             TEST_CONFIG["WEBSUPPORT_SECRET"],
-            "GET",
-            "/v2/service/domains"
+            "GET", "/v1/user/self/service", "", None,
         )
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_create_domain(self, mock_request):
-        """Test create_domain method"""
-        domain_data = {"name": "example.com", "description": "Test domain"}
-        mock_request.return_value = {"id": 123, "name": "example.com"}
-        
-        result = WebsupportService.create_domain(domain_data)
-        
-        assert result["id"] == 123
-        assert result["name"] == "example.com"
-        mock_request.assert_called_once_with(
+
+    @patch("app.websupport.make_websupport_request")
+    def test_get_dns_records(self, mock_req):
+        mock_req.return_value = {
+            "items": [
+                {"type": "A", "id": 1, "name": "api", "content": "194.182.87.6", "ttl": 600}
+            ]
+        }
+        result = WebsupportService.get_dns_records("h4ck3d.me")
+        assert len(result["items"]) == 1
+        assert result["items"][0]["name"] == "api"
+        mock_req.assert_called_once_with(
             TEST_CONFIG["WEBSUPPORT_API_KEY"],
             TEST_CONFIG["WEBSUPPORT_SECRET"],
-            "POST",
-            "/v2/service/domains",
-            data=domain_data
+            "GET", "/v1/user/self/zone/h4ck3d.me/record", "", None,
         )
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_get_domain_details(self, mock_request):
-        """Test get_domain_details method"""
-        domain_id = 123
-        mock_request.return_value = {"id": 123, "name": "example.com", "status": "active"}
-        
-        result = WebsupportService.get_domain_details(domain_id)
-        
-        assert result["id"] == 123
-        assert result["name"] == "example.com"
-        assert result["status"] == "active"
-        mock_request.assert_called_once_with(
+
+    @patch("app.websupport.make_websupport_request")
+    def test_create_dns_record(self, mock_req):
+        record = {"type": "A", "name": "test", "content": "1.2.3.4", "ttl": 600}
+        mock_req.return_value = {"status": "success", "item": record}
+
+        result = WebsupportService.create_dns_record("h4ck3d.me", record)
+
+        assert result["status"] == "success"
+        mock_req.assert_called_once_with(
             TEST_CONFIG["WEBSUPPORT_API_KEY"],
             TEST_CONFIG["WEBSUPPORT_SECRET"],
-            "GET",
-            f"/v2/service/domains/{domain_id}"
+            "POST", "/v1/user/self/zone/h4ck3d.me/record", "", record,
         )
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_delete_domain(self, mock_request):
-        """Test delete_domain method"""
-        domain_id = 123
-        mock_request.return_value = {"success": true}
-        
-        result = WebsupportService.delete_domain(domain_id)
-        
-        assert result["success"] is True
-        mock_request.assert_called_once_with(
+
+    @patch("app.websupport.make_websupport_request")
+    def test_update_dns_record(self, mock_req):
+        update = {"content": "5.6.7.8"}
+        mock_req.return_value = {}
+        WebsupportService.update_dns_record("h4ck3d.me", 42, update)
+        mock_req.assert_called_once_with(
             TEST_CONFIG["WEBSUPPORT_API_KEY"],
             TEST_CONFIG["WEBSUPPORT_SECRET"],
-            "DELETE",
-            f"/v2/service/domains/{domain_id}"
+            "PUT", "/v1/user/self/zone/h4ck3d.me/record/42", "", update,
         )
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_get_user_info(self, mock_request):
-        """Test get_user_info method"""
-        mock_request.return_value = {"id": 1, "email": "user@example.com", "name": "Test User"}
-        
-        result = WebsupportService.get_user_info()
-        
-        assert result["id"] == 1
-        assert result["email"] == "user@example.com"
-        assert result["name"] == "Test User"
-        mock_request.assert_called_once_with(
+
+    @patch("app.websupport.make_websupport_request")
+    def test_delete_dns_record(self, mock_req):
+        mock_req.return_value = {}
+        WebsupportService.delete_dns_record("h4ck3d.me", 42)
+        mock_req.assert_called_once_with(
             TEST_CONFIG["WEBSUPPORT_API_KEY"],
             TEST_CONFIG["WEBSUPPORT_SECRET"],
-            "GET",
-            "/v2/user/me"
+            "DELETE", "/v1/user/self/zone/h4ck3d.me/record/42", "", None,
         )
+
+    @patch("app.websupport.make_websupport_request")
+    def test_get_user_info_calls_user_self(self, mock_req):
+        mock_req.return_value = {"id": 1}
+        WebsupportService.get_user_info()
+        mock_req.assert_called_once_with(
+            TEST_CONFIG["WEBSUPPORT_API_KEY"],
+            TEST_CONFIG["WEBSUPPORT_SECRET"],
+            "GET", "/v1/user/self", "", None,
+        )
+
+    def test_create_domain_returns_error_note(self):
+        """Domain registration not supported via API — returns error dict"""
+        result = WebsupportService.create_domain({"name": "new.sk"})
+        assert result["status"] == "error"
+
+    def test_delete_domain_returns_error_note(self):
+        result = WebsupportService.delete_domain(123)
+        assert result["status"] == "error"
+
+    @patch("app.websupport.requests.get")
+    def test_dyndns_update_uses_plain_basic_auth(self, mock_get):
+        """DynDNS must NOT use HMAC — plain DYNDNS_KEY:DYNDNS_SECRET"""
+        mock_resp = Mock()
+        mock_resp.text = "good"
+        mock_get.return_value = mock_resp
+
+        result = WebsupportService.dyndns_update("api.h4ck3d.me", "1.2.3.4")
+
+        assert result == "good"
+        call_kwargs = mock_get.call_args[1]
+        auth = call_kwargs["auth"]
+        assert auth[0] == TEST_CONFIG["WEBSUPPORT_DYNDNS_KEY"]
+        assert auth[1] == TEST_CONFIG["WEBSUPPORT_DYNDNS_SECRET"]
+        # URL must point to dyndns.websupport.sk
+        call_url = mock_get.call_args[0][0]
+        assert "dyndns.websupport.sk" in call_url
+        assert "api.h4ck3d.me" in call_url
+
+    @patch("app.websupport.requests.get")
+    def test_dyndns_network_error_raises_500(self, mock_get):
+        mock_get.side_effect = RequestException("timeout")
+        with pytest.raises(HTTPException) as exc:
+            WebsupportService.dyndns_update("api.h4ck3d.me", "1.2.3.4")
+        assert exc.value.status_code == 500
 
 
 class TestWebsupportIntegration:
-    """Integration tests for Websupport API"""
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_full_domain_lifecycle(self, mock_request):
-        """Test complete domain lifecycle"""
-        # Mock responses for different operations
-        mock_request.side_effect = [
-            {"domains": []},  # get_domains
-            {"id": 123, "name": "test.com"},  # create_domain
-            {"id": 123, "name": "test.com", "status": "active"},  # get_domain_details
-            {"success": true}  # delete_domain
+    """Integration-style tests using mock at requests level"""
+
+    @patch("app.websupport.make_websupport_request")
+    def test_full_dns_lifecycle(self, mock_req):
+        mock_req.side_effect = [
+            {"items": []},                              # get_dns_records
+            {"status": "success", "item": {"id": 99}}, # create_dns_record
+            {},                                          # update_dns_record
+            {},                                          # delete_dns_record
         ]
-        
-        # Test domain operations
-        domains = WebsupportService.get_domains()
-        assert len(domains["domains"]) == 0
-        
-        new_domain = WebsupportService.create_domain({"name": "test.com"})
-        assert new_domain["id"] == 123
-        assert new_domain["name"] == "test.com"
-        
-        details = WebsupportService.get_domain_details(123)
-        assert details["status"] == "active"
-        
-        delete_result = WebsupportService.delete_domain(123)
-        assert delete_result["success"] is True
-        
-        # Verify all calls were made
-        assert mock_request.call_count == 4
-    
-    @patch('app.websupport.make_websupport_request')
-    def test_error_handling_consistency(self, mock_request):
-        """Test consistent error handling across all methods"""
-        mock_request.side_effect = HTTPException(status_code=401, detail="Unauthorized")
-        
-        with pytest.raises(HTTPException) as exc_info:
-            WebsupportService.get_domains()
-        assert exc_info.value.status_code == 401
-        
-        with pytest.raises(HTTPException) as exc_info:
-            WebsupportService.create_domain({"name": "test.com"})
-        assert exc_info.value.status_code == 401
-        
-        with pytest.raises(HTTPException) as exc_info:
-            WebsupportService.get_domain_details(123)
-        assert exc_info.value.status_code == 401
-        
-        with pytest.raises(HTTPException) as exc_info:
-            WebsupportService.delete_domain(123)
-        assert exc_info.value.status_code == 401
-        
-        with pytest.raises(HTTPException) as exc_info:
-            WebsupportService.get_user_info()
-        assert exc_info.value.status_code == 401
-    
-    @patch('app.websupport.generate_websupport_signature')
-    @patch('app.websupport.requests.request')
-    def test_signature_in_request_headers(self, mock_request, mock_signature):
-        """Test that signature is properly included in request headers"""
-        mock_signature.return_value = ("test_signature", "20230101T120000Z", 1234567890)
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.text = '{"success": true}'
-        mock_response.json.return_value = {"success": true}
-        mock_request.return_value = mock_response
-        
-        WebsupportService.get_domains()
-        
-        # Verify signature was called
-        mock_signature.assert_called_once_with(
-            TEST_CONFIG["WEBSUPPORT_API_KEY"],
-            TEST_CONFIG["WEBSUPPORT_SECRET"],
-            "GET",
-            "/v2/service/domains"
-        )
-        
-        # Verify request was called with signature in auth
-        call_args = mock_request.call_args
-        assert call_args[1]["auth"] == ("test_signature", "20230101T120000Z")
+
+        records = WebsupportService.get_dns_records("h4ck3d.me")
+        assert records["items"] == []
+
+        WebsupportService.create_dns_record("h4ck3d.me", {"type": "A", "name": "x", "content": "1.1.1.1", "ttl": 600})
+        WebsupportService.update_dns_record("h4ck3d.me", 99, {"content": "2.2.2.2"})
+        WebsupportService.delete_dns_record("h4ck3d.me", 99)
+
+        assert mock_req.call_count == 4
+
+    @patch("app.websupport.make_websupport_request")
+    def test_error_propagation_across_methods(self, mock_req):
+        mock_req.side_effect = HTTPException(status_code=401, detail="Unauthorized")
+
+        for fn in [
+            lambda: WebsupportService.verify_connection(),
+            lambda: WebsupportService.get_domains(),
+            lambda: WebsupportService.get_dns_records("h4ck3d.me"),
+            lambda: WebsupportService.create_dns_record("h4ck3d.me", {}),
+            lambda: WebsupportService.delete_dns_record("h4ck3d.me", 1),
+        ]:
+            with pytest.raises(HTTPException) as exc:
+                fn()
+            assert exc.value.status_code == 401

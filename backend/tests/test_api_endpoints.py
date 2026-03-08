@@ -6,14 +6,18 @@ Tests all public API endpoints including auth, domains, SSL, and dashboard
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
 
-from tests import client, db_session, test_user_data
+from app.main import app
+from app.crud import CRUDUser
+
+
 
 
 class TestAuthEndpoints:
     """Test authentication API endpoints"""
     
-    def test_auth_login_success(self, db_session: Session):
+    def test_auth_login_success(self, client: TestClient, db_session: Session, test_user_data: dict):
         """Test successful login"""
         # Create test user
         user = CRUDUser.create(
@@ -34,7 +38,7 @@ class TestAuthEndpoints:
         assert data["user_id"] == user.id
         assert data["email"] == test_user_data["email"]
     
-    def test_auth_login_wrong_password(self, db_session: Session):
+    def test_auth_login_wrong_password(self, client: TestClient, db_session: Session, test_user_data: dict):
         """Test login with wrong password"""
         # Create test user
         CRUDUser.create(
@@ -52,14 +56,14 @@ class TestAuthEndpoints:
         assert response.status_code == 401
         assert "invalid credentials" in response.json()["detail"].lower()
     
-    def test_auth_login_nonexistent_user(self):
+    def test_auth_login_nonexistent_user(self, client: TestClient, test_user_data: dict):
         """Test login with nonexistent user"""
         response = client.post("/api/auth/login", json=test_user_data)
         
         assert response.status_code == 401
         assert "invalid credentials" in response.json()["detail"].lower()
     
-    def test_auth_register_success(self):
+    def test_auth_register_success(self, client: TestClient, test_user_data: dict):
         """Test successful user registration"""
         response = client.post("/api/auth/register", json=test_user_data)
         
@@ -73,7 +77,7 @@ class TestAuthEndpoints:
         assert data["email"] == test_user_data["email"]
         assert "registered successfully" in data["message"].lower()
     
-    def test_auth_register_duplicate_email(self, db_session: Session):
+    def test_auth_register_duplicate_email(self, client: TestClient, db_session: Session, test_user_data: dict):
         """Test registration with duplicate email"""
         # Create existing user
         CRUDUser.create(
@@ -88,7 +92,7 @@ class TestAuthEndpoints:
         assert response.status_code == 400
         assert "already registered" in response.json()["detail"].lower()
     
-    def test_auth_refresh_success(self, db_session: Session):
+    def test_auth_refresh_success(self, client: TestClient, db_session: Session, test_user_data: dict):
         """Test successful token refresh"""
         # Create test user
         user = CRUDUser.create(
@@ -110,13 +114,13 @@ class TestAuthEndpoints:
         assert "access_token" in data
         assert data["token_type"] == "bearer"
     
-    def test_auth_refresh_invalid_token(self):
+    def test_auth_refresh_invalid_token(self, client: TestClient):
         """Test refresh with invalid token"""
         response = client.post("/api/auth/refresh", json={"refresh_token": "invalid_token"})
         
         assert response.status_code == 401
     
-    def test_auth_status(self):
+    def test_auth_status(self, client: TestClient):
         """Test auth system status endpoint"""
         response = client.get("/api/auth/status")
         
@@ -128,7 +132,7 @@ class TestAuthEndpoints:
         assert "recommended_auth" in data
         assert data["local_auth_available"] is True
     
-    def test_auth_neon_login_url(self):
+    def test_auth_neon_login_url(self, client: TestClient):
         """Test Neon Auth login URL endpoint"""
         response = client.get("/api/auth/neon/login-url")
         
@@ -143,26 +147,26 @@ class TestAuthEndpoints:
 class TestDomainEndpoints:
     """Test domain API endpoints"""
     
-    def test_domains_list_unauthorized(self):
+    def test_domains_list_unauthorized(self, client: TestClient):
         """Test domains list without authentication"""
         response = client.get("/api/domains")
         
         assert response.status_code == 401
     
-    def test_domains_list_success(self, client_with_auth):
+    def test_domains_list_success(self, client_with_auth: TestClient):
         """Test successful domains list"""
         response = client_with_auth.get("/api/domains")
         
         assert response.status_code == 200
         # Response structure depends on Websupport API mock
     
-    def test_domains_create_unauthorized(self):
+    def test_domains_create_unauthorized(self, client: TestClient):
         """Test domain creation without authentication"""
         response = client.post("/api/domains", json={"name": "example.com"})
         
         assert response.status_code == 401
     
-    def test_domains_create_success(self, client_with_auth):
+    def test_domains_create_success(self, client_with_auth: TestClient):
         """Test successful domain creation"""
         domain_data = {"name": "example.com", "description": "Test domain"}
         response = client_with_auth.post("/api/domains", json=domain_data)
@@ -170,13 +174,13 @@ class TestDomainEndpoints:
         assert response.status_code == 200
         # Response structure depends on Websupport API mock
     
-    def test_domains_get_details_unauthorized(self):
+    def test_domains_get_details_unauthorized(self, client: TestClient):
         """Test domain details without authentication"""
         response = client.get("/api/domains/123")
         
         assert response.status_code == 401
     
-    def test_domains_delete_unauthorized(self):
+    def test_domains_delete_unauthorized(self, client: TestClient):
         """Test domain deletion without authentication"""
         response = client.delete("/api/domains/123")
         
@@ -186,7 +190,7 @@ class TestDomainEndpoints:
 class TestSSLEndpoints:
     """Test SSL API endpoints"""
     
-    def test_ssl_generate_unauthorized(self):
+    def test_ssl_generate_unauthorized(self, client: TestClient):
         """Test SSL generation without authentication"""
         response = client.post("/api/ssl/generate", json={
             "domain": "example.com",
@@ -195,7 +199,7 @@ class TestSSLEndpoints:
         
         assert response.status_code == 401
     
-    def test_ssl_generate_success(self, client_with_auth):
+    def test_ssl_generate_success(self, client_with_auth: TestClient):
         """Test successful SSL generation"""
         ssl_data = {
             "domain": "example.com",
@@ -210,13 +214,13 @@ class TestSSLEndpoints:
 class TestUserEndpoints:
     """Test user API endpoints"""
     
-    def test_users_me_unauthorized(self):
+    def test_users_me_unauthorized(self, client: TestClient):
         """Test user info without authentication"""
         response = client.get("/api/users/me")
         
         assert response.status_code == 401
     
-    def test_users_me_success(self, client_with_auth):
+    def test_users_me_success(self, client_with_auth: TestClient):
         """Test successful user info retrieval"""
         response = client_with_auth.get("/api/users/me")
         
@@ -227,13 +231,13 @@ class TestUserEndpoints:
         assert "email" in data
         assert "two_factor_enabled" in data
     
-    def test_users_2fa_setup_unauthorized(self):
+    def test_users_2fa_setup_unauthorized(self, client: TestClient):
         """Test 2FA setup without authentication"""
         response = client.post("/api/users/2fa/setup")
         
         assert response.status_code == 401
     
-    def test_users_2fa_verify_unauthorized(self):
+    def test_users_2fa_verify_unauthorized(self, client: TestClient):
         """Test 2FA verification without authentication"""
         response = client.post("/api/users/2fa/verify", json={
             "token": "123456",
@@ -246,13 +250,13 @@ class TestUserEndpoints:
 class TestDashboardEndpoints:
     """Test dashboard API endpoints"""
     
-    def test_dashboard_stats_unauthorized(self):
+    def test_dashboard_stats_unauthorized(self, client: TestClient):
         """Test dashboard stats without authentication"""
         response = client.get("/api/dashboard/stats")
         
         assert response.status_code == 401
     
-    def test_dashboard_stats_success(self, client_with_auth):
+    def test_dashboard_stats_success(self, client_with_auth: TestClient):
         """Test successful dashboard stats"""
         response = client_with_auth.get("/api/dashboard/stats")
         
@@ -263,13 +267,13 @@ class TestDashboardEndpoints:
         assert "system_health" in data
         assert "timestamp" in data
     
-    def test_dashboard_activities_unauthorized(self):
+    def test_dashboard_activities_unauthorized(self, client: TestClient):
         """Test dashboard activities without authentication"""
         response = client.get("/api/dashboard/activities")
         
         assert response.status_code == 401
     
-    def test_dashboard_health(self):
+    def test_dashboard_health(self, client: TestClient):
         """Test dashboard health endpoint (public)"""
         response = client.get("/api/dashboard/health")
         
@@ -285,7 +289,7 @@ class TestDashboardEndpoints:
 class TestHealthEndpoints:
     """Test health and status endpoints"""
     
-    def test_health_endpoint(self):
+    def test_health_endpoint(self, client: TestClient):
         """Test health endpoint"""
         response = client.get("/health")
         
@@ -295,7 +299,7 @@ class TestHealthEndpoints:
         assert data["status"] == "ok"
         assert "env" in data
     
-    def test_root_endpoint(self):
+    def test_root_endpoint(self, client: TestClient):
         """Test root endpoint"""
         response = client.get("/")
         
@@ -311,7 +315,7 @@ class TestHealthEndpoints:
 class TestAPIIntegration:
     """Integration tests for API endpoints"""
     
-    def test_full_user_workflow(self, db_session: Session):
+    def test_full_user_workflow(self, client: TestClient, db_session: Session, test_user_data: dict):
         """Test complete user workflow through API"""
         # 1. Register user
         register_response = client.post("/api/auth/register", json=test_user_data)
@@ -333,8 +337,11 @@ class TestAPIIntegration:
         domains_response = client.get("/api/domains", headers=headers)
         assert domains_response.status_code == 200
     
-    def test_auth_flow_with_refresh(self, db_session: Session):
+    def test_auth_flow_with_refresh(self, client: TestClient, db_session: Session, test_user_data: dict):
         """Test authentication flow with token refresh"""
+        # 0. Register user first so login can succeed
+        client.post("/api/auth/register", json=test_user_data)
+
         # 1. Login
         login_response = client.post("/api/auth/login", json=test_user_data)
         assert login_response.status_code == 200
@@ -360,7 +367,7 @@ class TestAPIIntegration:
         response = client.get("/api/users/me", headers=new_headers)
         assert response.status_code == 200
     
-    def test_error_handling_consistency(self):
+    def test_error_handling_consistency(self, client: TestClient):
         """Test consistent error handling across endpoints"""
         endpoints_to_test = [
             ("/api/domains", "GET"),
@@ -388,7 +395,7 @@ class TestAPIIntegration:
 
 # Helper fixture for authenticated client
 @pytest.fixture
-def client_with_auth(db_session: Session):
+def client_with_auth(client: TestClient, db_session: Session, test_user_data: dict):
     """Create authenticated test client"""
     # Create test user
     user = CRUDUser.create(

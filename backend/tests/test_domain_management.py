@@ -8,11 +8,11 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from unittest.mock import MagicMock, patch
 
+from tests import test_user_data
 from app.domains.services import DomainService
 from app.domains.models import Domain as DomainModel
 from app.models import User
 from app.crud import CRUDUser
-from tests import db_session, test_user_data
 
 
 class TestDomainService:

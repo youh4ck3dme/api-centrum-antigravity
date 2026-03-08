@@ -1,12 +1,14 @@
 # backend/app/performance/routes.py
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from ..metrics import performance_metrics
+from ..auth_neon import get_current_user_or_neon
+from ..models import User
 
 router = APIRouter(tags=["Performance"])
 
 @router.get("/performance/stats")
-async def get_performance_stats():
+async def get_performance_stats(current_user: User = Depends(get_current_user_or_neon)):
     if not performance_metrics:
         return {"message": "No metrics collected yet"}
         

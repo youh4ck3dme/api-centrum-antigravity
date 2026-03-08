@@ -7,13 +7,13 @@ import pytest
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch
 
+from tests import test_user_data
 from app.dashboard import DashboardStats, DashboardStats
 from app.models import User, AuditLog
 from app.crud import CRUDUser
 from app.websupport import WebsupportService
-from tests import db_session, test_user_data
 
 
 class TestDashboardStats:

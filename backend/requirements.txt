@@ -1,11 +1,12 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-requests==2.31.0
-pydantic[email]==2.6.1
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+requests==2.32.0
+pydantic[email]==2.7.0
 python-dotenv==1.0.0
 sqlalchemy==1.4.52
 alembic==1.13.1
 psycopg2-binary==2.9.10
+asyncpg==0.29.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 pyjwt==2.8.0
@@ -18,3 +19,4 @@ sentry-sdk[fastapi]==1.40.0
 email-validator>=2.1.0
 prometheus-fastapi-instrumentator==6.1.0
 pytest==8.2.2
+httpx>=0.24.0

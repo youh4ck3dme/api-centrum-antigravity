@@ -1,22 +1,40 @@
 # backend/app/config.py
 
-import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_DEV_JWT_SECRET = "placeholder_secret_for_development_only"
+
+
 class Settings(BaseSettings):
+    # Websupport Standard API key (pre DNS záznamy, FTP účty)
     WEBSUPPORT_API_KEY: str = ""
     WEBSUPPORT_SECRET: str = ""
+    # Websupport DynDNS API key
+    WEBSUPPORT_DYNDNS_KEY: str = ""
+    WEBSUPPORT_DYNDNS_SECRET: str = ""
+
     DATABASE_URL: str = "sqlite:///./test.db"
     CERTBOT_EMAIL: str = ""
     ENV: str = "development"
-    JWT_SECRET: str = "veľmi_dlhý_secret_kľúč_minimálne_32_znakov_pre_bezpečnosť"
+    # In production, this MUST be set via environment variable
+    JWT_SECRET: str = DEFAULT_DEV_JWT_SECRET
     JWT_EXPIRE_MINUTES: int = 1440
-    
-    # Produkčné nastavenia
-    ALLOWED_HOSTS: str = "localhost,127.0.0.1,0.0.0.0,localhost:5555,localhost:5556"
-    CORS_ORIGINS: str = "http://localhost:5555,http://localhost:5556,http://127.0.0.1:5555,http://127.0.0.1:5556"
+
+    # Defaults for local development
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1,0.0.0.0,localhost:8000,localhost:3000,testserver"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-settings = Settings()
+    def validate_security_settings(self) -> None:
+        env = self.ENV.lower()
+        if env != "production":
+            return
 
+        if self.JWT_SECRET == DEFAULT_DEV_JWT_SECRET:
+            raise RuntimeError("JWT_SECRET must be explicitly configured in production.")
+
+        if len(self.JWT_SECRET) < 32:
+            raise RuntimeError("JWT_SECRET must be at least 32 characters in production.")
+
+settings = Settings()

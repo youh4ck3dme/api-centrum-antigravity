@@ -12,7 +12,7 @@ from .db import get_db
 from .models import User
 from .crud import CRUDUser
 from .neon_auth import verify_neon_auth_token, is_neon_trial_active
-from .auth_local import decode_local_access_token, LocalAuthService
+from .auth import decode_access_token, AuthService
 from .auth_neon import get_neon_auth_user
 
 security = HTTPBearer()
@@ -47,7 +47,7 @@ class CompositeAuthService:
         
         # Fall back to local authentication
         try:
-            payload = decode_local_access_token(token)
+            payload = decode_access_token(token)
             email = payload.get("sub")
             
             if not email:
@@ -75,7 +75,7 @@ class CompositeAuthService:
         """
         # Try local authentication first
         try:
-            return LocalAuthService.authenticate_user(email, password, db)
+            return AuthService.authenticate_user(email, password, db)
         except HTTPException as e:
             # If local auth fails and Neon Auth is available, try Neon Auth
             if e.status_code == 401 and is_neon_trial_active():
@@ -145,8 +145,10 @@ class AuthMigrationService:
     @staticmethod
     def check_auth_status() -> Dict[str, Any]:
         """Check status of both authentication systems"""
+        from datetime import datetime, timezone
         return {
             "neon_auth_active": is_neon_trial_active(),
             "local_auth_available": True,  # Always available
-            "recommended_auth": "neon" if is_neon_trial_active() else "local"
+            "recommended_auth": "neon" if is_neon_trial_active() else "local",
+            "last_checked": datetime.now(timezone.utc).isoformat()
         }

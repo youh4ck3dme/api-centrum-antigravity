@@ -32,6 +32,12 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     user = crud.CRUDUser.create(db, payload.email, payload.password)
+    
+    # Audit log
+    new_log = models.AuditLog(user_id=user.id, action="register", detail="User registered via local auth")
+    db.add(new_log)
+    db.commit()
+    
     return {"id": user.id, "email": user.email}
 
 
@@ -44,6 +50,12 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         if not payload.totp or not auth.verify_totp(payload.totp, user.totp_secret):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="2FA required or invalid token")
     token = auth.create_access_token(subject=user.email)
+    
+    # Audit log
+    new_log = models.AuditLog(user_id=user.id, action="login", detail="Successful login")
+    db.add(new_log)
+    db.commit()
+    
     return {"access_token": token}
 
 
@@ -72,6 +84,12 @@ def verify_2fa(payload: Verify2FAIn, db: Session = Depends(get_db), current_user
     if not auth.verify_totp(payload.token, payload.secret):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid TOTP token")
     crud.CRUDUser.enable_2fa(db, current_user, payload.secret)
+    
+    # Audit log
+    new_log = models.AuditLog(user_id=current_user.id, action="2fa_enabled", detail="TOTP 2FA enabled")
+    db.add(new_log)
+    db.commit()
+    
     return {"status": "2fa_enabled"}
 
 

@@ -8,17 +8,16 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth_local import (
+from app.auth import (
     hash_password, 
     verify_password,
-    create_local_access_token,
-    decode_local_access_token,
+    create_access_token as create_local_access_token,
+    decode_access_token as decode_local_access_token,
     create_refresh_token,
-    LocalAuthService
+    AuthService as LocalAuthService
 )
 from app.models import User
 from app.crud import CRUDUser
-from tests import db_session, test_user_data
 
 
 class TestPasswordHashing:

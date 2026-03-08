@@ -4,15 +4,10 @@ services:
     build: ./backend
     container_name: dsm_backend
     ports:
-      - "8000:8000"
-    environment:
-      - WEBSUPPORT_API_KEY=
-      - WEBSUPPORT_SECRET=
-      - DATABASE_URL=
-      - CERTBOT_EMAIL=
-      - ENV=
-      - JWT_SECRET=
-      - JWT_EXPIRE_MINUTES=
+      - "5555:5555"
+      - "5556:5556"
+    env_file:
+      - ./backend/.env
     depends_on:
       - postgres
 
@@ -21,16 +16,16 @@ services:
       context: ./frontend
     container_name: dsm_frontend
     ports:
-      - "3000:80"
+      - "3001:80"
     depends_on:
       - backend
 
   postgres:
     image: postgres:14
     environment:
-      POSTGRES_PASSWORD: 
-      POSTGRES_USER: 
-      POSTGRES_DB: 
+      POSTGRES_PASSWORD: super_secret_password_123
+      POSTGRES_USER: api_user
+      POSTGRES_DB: api_centrum
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
