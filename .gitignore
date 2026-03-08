@@ -5,6 +5,7 @@
 venv/
 env/
 *.log
+backend_crash.log
 
 # Python
 __pycache__/
@@ -14,8 +15,11 @@ __pycache__/
 .coverage
 htmlcov/
 .mypy_cache/
-backend/app/backups/*.db
-test.db
+*.db
+!backend/app/backups/valid_backup.db # keep if needed, but usually .db should be ignored
+
+# Tooling
+.claude/
 
 # Node
 node_modules/
@@ -23,6 +27,7 @@ dist/
 .vite/
 .vercel
 dist/
+frontend/build_*.txt
 
 # IDE
 .vscode/
