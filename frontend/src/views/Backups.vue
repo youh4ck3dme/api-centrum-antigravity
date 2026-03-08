@@ -155,8 +155,10 @@ const downloadBackup = async (filename) => {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch {
     showToast('Stiahnutie zlyhalo.', 'error');
   }
