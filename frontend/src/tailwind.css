@@ -52,3 +52,8 @@
     transform: translateX(8px) translateY(15px) rotate(-2deg) scale(1);
   }
 }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

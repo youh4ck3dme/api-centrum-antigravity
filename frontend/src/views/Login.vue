@@ -108,15 +108,17 @@ const login = async () => {
   background: #080808;
   overflow: hidden;
   position: relative;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+               'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* ── Animated orbs ────────────────────────────── */
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(100px);
   animation: float 9s ease-in-out infinite;
+  will-change: transform;
 }
 .orb-1 {
   width: 400px; height: 400px;
@@ -152,15 +154,19 @@ const login = async () => {
   padding: 2.5rem 2rem;
   border-radius: 28px;
   background: rgba(255, 255, 253, 0.04);
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  backdrop-filter: blur(40px) saturate(170%);
+  -webkit-backdrop-filter: blur(40px) saturate(170%);
   border: 1px solid rgba(255, 255, 250, 0.1);
   box-shadow:
     0 40px 100px rgba(0, 0, 0, 0.7),
     0 0 0 1px rgba(255,255,255,0.04),
-    inset 0 1px 0 rgba(255, 255, 250, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+    inset 0 1px 0 rgba(255, 255, 250, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+    0 0 80px rgba(99,102,241,0.04);
   animation: cardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (max-width: 480px) {
+  .glass-card { padding: 2rem 1.5rem; border-radius: 22px; margin: 0.75rem; }
 }
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(28px) scale(0.96); }
@@ -302,9 +308,9 @@ const login = async () => {
 }
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: rgba(255,255,250,0.14);
+  background: linear-gradient(135deg, rgba(255,255,250,0.14), rgba(99,102,241,0.12));
   border-color: rgba(255,255,250,0.22);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12), 0 0 16px rgba(99,102,241,0.08);
 }
 .submit-btn:active:not(:disabled) { transform: translateY(0); }
 .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }

@@ -77,7 +77,11 @@ onMounted(async () => {
 <style scoped>
 .dash { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
 
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 1023px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .dash { padding: 1rem 0.5rem; gap: 1rem; } }
+
 .stat-card {
   padding: 1.5rem;
   border-radius: 20px;
@@ -85,12 +89,19 @@ onMounted(async () => {
   border: 1px solid rgba(255,255,255,0.08);
   backdrop-filter: blur(16px);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 24px rgba(0,0,0,0.3);
-  transition: background 0.2s;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
 }
-.stat-card:hover { background: rgba(255,255,255,0.06); }
+.stat-card:hover {
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+}
+@media (max-width: 480px) { .stat-card { padding: 1.1rem; border-radius: 16px; } }
+
 .stat-icon { font-size: 1.4rem; margin-bottom: 0.75rem; }
 .stat-label { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 0.4rem; }
 .stat-value { font-size: 2rem; font-weight: 700; color: rgba(255,255,250,0.92); letter-spacing: -0.03em; line-height: 1; margin-bottom: 0.25rem; }
+@media (max-width: 480px) { .stat-value { font-size: 1.6rem; } }
 .stat-sub { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
 
 .panel {
@@ -111,10 +122,20 @@ onMounted(async () => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .activity-list { list-style: none; }
-.activity-item { display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+.activity-item {
+  display: flex; align-items: center; gap: 0.875rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-left: 3px solid transparent;
+  transition: all 0.18s ease;
+}
 .activity-item:last-child { border-bottom: none; }
-.activity-item:hover { background: rgba(255,255,255,0.03); }
-.act-icon { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); border-radius: 10px; font-size: 1rem; border: 1px solid rgba(255,255,255,0.07); }
+.activity-item:hover {
+  background: rgba(255,255,255,0.03);
+  border-left-color: rgba(99,102,241,0.4);
+}
+.act-icon { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); border-radius: 10px; font-size: 1rem; border: 1px solid rgba(255,255,255,0.07); transition: background 0.18s; }
+.activity-item:hover .act-icon { background: rgba(255,255,255,0.09); }
 .act-body { flex: 1; min-width: 0; }
 .act-title { font-size: 0.85rem; font-weight: 500; color: rgba(255,255,250,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .act-time { font-size: 0.72rem; color: rgba(255,255,255,0.3); margin-top: 0.15rem; }

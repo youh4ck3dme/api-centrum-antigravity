@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     JWT_SECRET: str = DEFAULT_DEV_JWT_SECRET
     JWT_EXPIRE_MINUTES: int = 1440
 
+    # WebSocket token (optional service-to-service auth bypass)
+    WS_TOKEN: str = ""
+
+    # Per-domain polling intervals (JSON string, e.g. '{"critical.com": 30, "default": 60}')
+    DOMAIN_POLL_INTERVALS: str = ""
+
+    # VPS provisioning — cloud provider API tokens
+    HETZNER_API_TOKEN: str = ""
+    DIGITALOCEAN_API_TOKEN: str = ""
+
     # Defaults for local development
     ALLOWED_HOSTS: str = "localhost,127.0.0.1,0.0.0.0,localhost:8000,localhost:3000,testserver"
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"

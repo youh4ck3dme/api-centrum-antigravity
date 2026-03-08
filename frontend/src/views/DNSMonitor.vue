@@ -10,6 +10,39 @@
         </h2>
         <p class="page-sub">{{ statusLabel }} · {{ domainCount }} domén monitorovaných</p>
       </div>
+      <button class="btn-provision" @click="showProvision = true">🖥️ Nový server</button>
+    </div>
+
+    <!-- Provision Modal -->
+    <div v-if="showProvision" class="modal-overlay" @click.self="showProvision = false">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">🚀 One-Click VPS Provisioning</h3>
+          <button class="modal-close" @click="showProvision = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <label class="field-label">Názov servera</label>
+          <input v-model="prov.name" class="field-input" placeholder="napr. production-01" />
+          <label class="field-label">Provider</label>
+          <select v-model="prov.provider" class="field-input">
+            <option value="hetzner">Hetzner</option>
+            <option value="digitalocean">DigitalOcean</option>
+          </select>
+          <label class="field-label">Región</label>
+          <input v-model="prov.region" class="field-input" placeholder="napr. nbg1 alebo fra1" />
+          <label class="field-label">Doména pre A záznam</label>
+          <input v-model="prov.domain" class="field-input" placeholder="napr. app.example.com" />
+          <div v-if="provStatus" class="prov-status" :class="provStatusClass">
+            {{ provStatus }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showProvision = false">Zrušiť</button>
+          <button class="btn-create-vps" @click="startProvision" :disabled="provLoading">
+            {{ provLoading ? 'Vytvára sa...' : 'Vytvoriť' }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Stat cards -->
@@ -162,14 +195,78 @@ const feedMessage = (item) => {
     return `Pripojený · ${item.domain_count} domén · ${item.threats_today} hrozieb dnes`;
   return item.message ?? '';
 };
+
+// ── VPS Provisioning ─────────────────────────────────────────────────────
+const showProvision = ref(false);
+const provLoading = ref(false);
+const provStatus = ref('');
+const provStatusClass = ref('');
+const prov = ref({ name: '', provider: 'hetzner', region: '', domain: '' });
+
+async function startProvision() {
+  provLoading.value = true;
+  provStatus.value = 'Vytvára sa server...';
+  provStatusClass.value = 'status-info';
+  try {
+    const res = await fetch('/api/dns-monitor/provision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prov.value),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Chyba pri vytváraní');
+    provStatus.value = `Job spustený: ${data.job_id}`;
+    provStatusClass.value = 'status-ok';
+    // Poll status
+    pollJobStatus(data.job_id);
+  } catch (e) {
+    provStatus.value = `Chyba: ${e.message}`;
+    provStatusClass.value = 'status-err';
+  } finally {
+    provLoading.value = false;
+  }
+}
+
+async function pollJobStatus(jobId) {
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    if (attempts > 60) {
+      clearInterval(poll);
+      provStatus.value = 'Timeout — skontrolujte stav manuálne';
+      provStatusClass.value = 'status-err';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/dns-monitor/provision/${jobId}`);
+      const data = await res.json();
+      provStatus.value = `[${data.progress ?? 0}%] ${data.step ?? 'neznámy krok'}`;
+      if (data.status === 'completed') {
+        clearInterval(poll);
+        provStatus.value = `✅ Server vytvorený! IP: ${data.server_ip ?? 'neznáme'}`;
+        provStatusClass.value = 'status-ok';
+      } else if (data.status === 'failed') {
+        clearInterval(poll);
+        provStatus.value = `❌ Zlyhalo: ${data.error ?? 'neznáma chyba'}`;
+        provStatusClass.value = 'status-err';
+      } else {
+        provStatusClass.value = 'status-info';
+      }
+    } catch {
+      // ignore poll errors
+    }
+  }, 3000);
+}
 </script>
 
 <style scoped>
 .dns-root { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+@media (max-width: 480px) { .dns-root { padding: 1rem 0.5rem; gap: 1rem; } }
 
-.page-header { display: flex; justify-content: space-between; align-items: center; }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
 .page-title  { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; display: flex; align-items: center; gap: 0.6rem; }
 .page-sub    { font-size: 0.85rem; color: #94a3b8; margin: 0.2rem 0 0; }
+@media (max-width: 480px) { .page-title { font-size: 1.2rem; } }
 
 /* Connection dot */
 .live-dot {
@@ -186,11 +283,19 @@ const feedMessage = (item) => {
 }
 
 /* Stats */
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 1rem; }
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+@media (max-width: 1023px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .stats-row { grid-template-columns: 1fr; } }
 .stat-card {
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
   backdrop-filter: blur(12px); border-radius: 14px; padding: 1rem 1.1rem;
   display: flex; align-items: center; gap: 0.9rem;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.07);
 }
 .stat-icon  { font-size: 1.6rem; }
 .stat-label { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
@@ -241,4 +346,79 @@ const feedMessage = (item) => {
 .feed-body   { display: flex; flex-direction: column; gap: 0.1rem; }
 .feed-domain { color: #a5b4fc; font-weight: 600; }
 .feed-msg    { color: #cbd5e1; }
+
+/* Provision button */
+.btn-provision {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+  color: #a5b4fc; padding: 0.5rem 1rem; border-radius: 10px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-provision:hover {
+  background: rgba(99,102,241,0.25); transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99,102,241,0.15);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal-card {
+  width: 100%; max-width: 440px;
+  background: rgba(20,20,26,0.95); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(24px);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.modal-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin: 0; }
+.modal-close {
+  background: none; border: none; color: #64748b; font-size: 1.1rem;
+  cursor: pointer; padding: 0.25rem;
+}
+.modal-close:hover { color: #f1f5f9; }
+.modal-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.field-label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.field-input {
+  padding: 0.6rem 0.85rem; border-radius: 10px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: #f1f5f9; font-size: 0.85rem; outline: none;
+  transition: border-color 0.2s;
+}
+.field-input:focus { border-color: rgba(99,102,241,0.5); }
+.field-input option { background: #1e1e2a; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 0.5rem;
+  padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.06);
+}
+.btn-cancel {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8; padding: 0.5rem 1rem; border-radius: 10px;
+  font-size: 0.82rem; cursor: pointer; transition: background 0.15s;
+}
+.btn-cancel:hover { background: rgba(255,255,255,0.1); }
+.btn-create-vps {
+  background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+  color: #c7d2fe; padding: 0.5rem 1.25rem; border-radius: 10px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-create-vps:hover:not(:disabled) {
+  background: rgba(99,102,241,0.3); transform: translateY(-1px);
+}
+.btn-create-vps:disabled { opacity: 0.4; cursor: not-allowed; }
+.prov-status {
+  font-size: 0.8rem; padding: 0.6rem 0.85rem; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.status-info { background: rgba(99,102,241,0.1); color: #a5b4fc; }
+.status-ok   { background: rgba(74,222,128,0.1); color: #4ade80; }
+.status-err  { background: rgba(248,113,113,0.1); color: #f87171; }
 </style>

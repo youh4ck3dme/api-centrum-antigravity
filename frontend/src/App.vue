@@ -110,7 +110,12 @@ const extraTabs = tabs.slice(6);
 body {
   background: #080808;
   color: rgba(255,255,250,0.88);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+               'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1;
   min-height: 100vh;
 }
 
@@ -126,11 +131,22 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(12,12,12,0.85);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  background: rgba(12,12,12,0.88);
+  backdrop-filter: blur(32px) saturate(170%);
+  -webkit-backdrop-filter: blur(32px) saturate(170%);
   border-bottom: 1px solid rgba(255,255,255,0.07);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.2);
+}
+.navbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(60%, 400px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent);
+  pointer-events: none;
 }
 .navbar-inner {
   max-width: 1280px;
@@ -196,11 +212,21 @@ body {
 .nav-tab.active {
   background: rgba(255,255,255,0.1);
   color: rgba(255,255,250,0.95);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.3), 0 0 8px rgba(99,102,241,0.08);
 }
 .tab-icon { font-size: 0.85rem; }
 .tab-label { display: none; }
 @media (min-width: 640px) { .tab-label { display: inline; } }
+@media (max-width: 480px) {
+  .navbar-inner { padding: 6px 1rem; gap: 0.75rem; }
+  .brand-name { font-size: 0.85rem; }
+  .brand-icon { width: 28px; height: 28px; font-size: 0.85rem; }
+  .nav-tab { padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+  .tab-icon { font-size: 0.75rem; }
+  .navbar-right { gap: 0.5rem; }
+  .avatar { width: 26px; height: 26px; font-size: 0.6rem; }
+  .logout-btn { font-size: 0.7rem; padding: 0.25rem 0.5rem; }
+}
 
 /* Right side */
 .navbar-right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; margin-top: 5px; }
@@ -242,6 +268,12 @@ body {
   margin: 0 auto;
   padding: 1.5rem 1.5rem 5rem;
 }
+@media (max-width: 480px) {
+  .app-main { padding: 1rem 0.75rem 5rem; }
+}
+@media (min-width: 1440px) {
+  .app-main { max-width: 1400px; padding: 2rem 2rem 5rem; }
+}
 
 /* ── Mobile nav ─────────────────────── */
 .mobile-nav {
@@ -250,15 +282,20 @@ body {
   bottom: 1rem;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(20,20,20,0.9);
-  backdrop-filter: blur(20px);
+  background: rgba(20,20,20,0.92);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 18px;
   padding: 0.4rem;
   gap: 2px;
   z-index: 100;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+  max-width: calc(100vw - 2rem);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.mobile-nav::-webkit-scrollbar { display: none; }
 @media (min-width: 768px) { .mobile-nav { display: none; } }
 .mobile-tab {
   padding: 0.6rem 0.9rem;
@@ -267,12 +304,21 @@ body {
   background: transparent;
   font-size: 1.1rem;
   cursor: pointer;
-  transition: background 0.18s;
+  transition: all 0.2s ease;
   color: rgba(255,255,255,0.4);
+  flex-shrink: 0;
 }
-.mobile-tab.active { background: rgba(255,255,255,0.12); }
+.mobile-tab:hover { color: rgba(255,255,255,0.6); }
+.mobile-tab.active {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+@media (max-width: 480px) {
+  .mobile-tab { padding: 0.5rem 0.7rem; font-size: 1rem; }
+}
 
 /* ── Fade transition ────────────────── */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.22s cubic-bezier(0.4,0,0.2,1); }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

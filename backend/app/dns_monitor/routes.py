@@ -5,15 +5,24 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPExcept
 from fastapi.responses import JSONResponse
 
 from ..auth import decode_access_token
+from ..config import settings
 from .monitor import manager, dns_snapshot, recent_threats, last_scan_ts
+from .persistence import get_threats
 
 router = APIRouter(tags=["DNS Monitor"])
 
 
 def _verify_ws_token(token: str | None) -> bool:
-    """Validate JWT token passed as query param for WebSocket auth."""
+    """Validate JWT token or WS_TOKEN passed as query param for WebSocket auth."""
     if not token:
         return False
+
+    # Check WS_TOKEN (service-to-service bypass)
+    ws_token = getattr(settings, "WS_TOKEN", "")
+    if ws_token and token == ws_token:
+        return True
+
+    # Primary: JWT validation
     try:
         payload = decode_access_token(token)
         return bool(payload.get("sub"))
@@ -63,3 +72,17 @@ def get_snapshot():
         "threats_today": sum(1 for t in recent_threats if t["timestamp"] > today),
         "last_scan": last_scan_ts,
     })
+
+
+@router.get("/dns-monitor/threats")
+def get_threat_history(
+    limit: int = Query(default=100, le=500),
+    domain: str | None = Query(default=None),
+    severity: str | None = Query(default=None),
+):
+    """Query persisted threat history from the database."""
+    try:
+        threats = get_threats(limit=limit, domain=domain, severity=severity)
+        return JSONResponse({"threats": threats, "count": len(threats)})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to query threats: {e}")

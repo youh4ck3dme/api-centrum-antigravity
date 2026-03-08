@@ -19,6 +19,7 @@ from .performance.routes import router as performance_router
 from .vps.routes import router as vps_router
 from .radar.routes import router as radar_router
 from .dns_monitor.routes import router as dns_monitor_router
+from .dns_monitor.provision import router as provision_router
 from .dns_monitor.monitor import dns_poll_loop
 from .config import settings
 
@@ -105,6 +106,7 @@ app.include_router(performance_router, prefix="/api")
 app.include_router(vps_router, prefix="/api")
 app.include_router(radar_router, prefix="/api")
 app.include_router(dns_monitor_router, prefix="/api")
+app.include_router(provision_router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():

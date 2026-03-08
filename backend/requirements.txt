@@ -21,3 +21,4 @@ prometheus-fastapi-instrumentator==6.1.0
 pytest==8.2.2
 httpx>=0.24.0
 dnspython>=2.4.0
+asyncssh>=2.14.0

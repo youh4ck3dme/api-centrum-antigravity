@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Business data
+    match /businesses/{businessId} {
+      allow read: if request.auth != null; // Owner or relevant staff logic here
+      
+      // Only Cloud Functions should modify 'plan' and 'limits'
+      allow write: if request.auth != null 
+                   && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'limits']);
+    }
+
+    // License data - SERVER ONLY WRITES
+    match /licenses/{licenseId} {
+      // Clients can read their own license if they know the ID or have assignment
+      allow read: if request.auth != null && resource.data.assigned_to == request.auth.uid;
+      
+      // Strictly no direct client writes
+      allow write: if false;
+    }
+  }
+}

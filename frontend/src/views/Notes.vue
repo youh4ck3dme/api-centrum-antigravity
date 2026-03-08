@@ -139,10 +139,14 @@ const storageUsed = computed(() => {
 
 <style scoped>
 .notes-root { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+@media (max-width: 480px) { .notes-root { padding: 1rem 0.5rem; gap: 1rem; } }
 
-.page-header { display: flex; justify-content: space-between; align-items: center; }
+.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
 .page-title  { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; }
 .page-sub    { font-size: 0.85rem; color: #94a3b8; margin: 0.2rem 0 0; }
+@media (max-width: 480px) {
+  .page-title { font-size: 1.2rem; }
+}
 
 .btn-new {
   display: flex; align-items: center; gap: 0.4rem;
@@ -165,6 +169,8 @@ const storageUsed = computed(() => {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
+@media (max-width: 640px) { .notes-grid { grid-template-columns: 1fr; } }
+@media (min-width: 641px) and (max-width: 1023px) { .notes-grid { grid-template-columns: repeat(2, 1fr); } }
 
 .note-card {
   background: rgba(255,255,255,0.05);
