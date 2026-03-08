@@ -5,7 +5,7 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">Správa Domén</h2>
-        <p class="page-sub">Websupport DNS manager — {{ domains.length }} domén</p>
+        <p class="page-sub">{{ domains.length }} domén celkovo · {{ wsDomains.length }} Websupport · {{ forpsiDomains.length }} Forpsi</p>
       </div>
       <button @click="fetchDomains" class="btn-ghost" :disabled="loading">
         <span :style="loading ? 'display:inline-block;animation:spin .7s linear infinite' : ''">🔄</span>
@@ -45,7 +45,10 @@
             <div class="domain-icon">🌐</div>
             <div class="domain-body">
               <p class="domain-name">{{ d.name }}</p>
-              <p class="domain-sub">{{ formatExpiry(d.expireTime) }}</p>
+              <p class="domain-sub">
+                <span v-if="d.readonly" class="badge-forpsi">Forpsi · read-only</span>
+                <span v-else>{{ formatExpiry(d.expireTime) }}</span>
+              </p>
             </div>
             <span class="status-dot" :class="d.status === 'active' ? 'green' : 'red'"></span>
           </li>
@@ -62,12 +65,15 @@
         <template v-else>
           <div class="panel-header" style="flex-direction: column; align-items: stretch; gap: 0.8rem;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span class="panel-title">{{ selectedDomain }}</span>
-              <button v-if="activeTab === 'dns'" class="btn-add" @click="showAddForm = !showAddForm">
+              <span class="panel-title">
+                {{ selectedDomain }}
+                <span v-if="selectedDomainObj?.readonly" class="badge-forpsi" style="margin-left:0.5rem">Forpsi · read-only</span>
+              </span>
+              <button v-if="activeTab === 'dns' && !selectedDomainObj?.readonly" class="btn-add" @click="showAddForm = !showAddForm">
                 {{ showAddForm ? '✕ Zrušiť' : '+ Pridať záznam' }}
               </button>
             </div>
-            <div class="tabs-container">
+            <div v-if="!selectedDomainObj?.readonly" class="tabs-container">
               <button class="tab-btn" :class="{ active: activeTab === 'dns' }" @click="activeTab = 'dns'">DNS Záznamy</button>
               <button class="tab-btn ai-tab" :class="{ active: activeTab === 'sentinel' }" @click="activeTab = 'sentinel'">
                 <span style="font-size: 0.9em; margin-right: 4px;">🛡️</span> AI Sentinel
@@ -75,8 +81,15 @@
             </div>
           </div>
 
+          <!-- Forpsi read-only notice -->
+          <div v-if="selectedDomainObj?.readonly" class="empty-state" style="flex:1">
+            <span style="font-size:2rem">🔒</span>
+            <span style="font-weight:600;color:rgba(255,255,250,0.7)">Forpsi doména — read-only</span>
+            <span style="text-align:center">DNS záznamy pre túto doménu sa spravujú<br>cez <strong>admin.forpsi.com</strong></span>
+          </div>
+
           <!-- DNS Tab Content -->
-          <div v-if="activeTab === 'dns'" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+          <div v-else-if="activeTab === 'dns'" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
 
           <!-- Add DNS form -->
           <div v-if="showAddForm" class="add-form">
@@ -126,7 +139,7 @@
           </div>
 
           <!-- Sentinel Tab Content -->
-          <div v-else-if="activeTab === 'sentinel'" style="flex: 1; overflow-y: auto; padding: 0.5rem 1rem;">
+          <div v-else-if="activeTab === 'sentinel' && !selectedDomainObj?.readonly" style="flex: 1; overflow-y: auto; padding: 0.5rem 1rem;">
             <SentinelAudit :domainName="selectedDomain" @fixed="handleSentinelFixed" />
           </div>
         </template>
@@ -137,19 +150,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import api from "../api/api";
 import SentinelAudit from "../components/domains/SentinelAudit.vue";
 
 const domains = ref([]);
 const loading = ref(false);
 const selectedDomain = ref(null);
+const selectedDomainObj = ref(null);
 const dnsRecords = ref([]);
 const dnsLoading = ref(false);
 const showAddForm = ref(false);
 const savingRecord = ref(false);
 const newRec = ref({ type: "A", name: "", content: "", ttl: 600 });
 const activeTab = ref('dns');
+
+const wsDomains = computed(() => domains.value.filter(d => !d.readonly));
+const forpsiDomains = computed(() => domains.value.filter(d => d.readonly));
 
 const fetchDomains = async () => {
   loading.value = true;
@@ -165,12 +182,16 @@ const fetchDomains = async () => {
 
 const selectDomain = async (d) => {
   if (selectedDomain.value !== d.name) {
-    activeTab.value = 'dns'; // Reset tab on domain change
+    activeTab.value = 'dns';
   }
   selectedDomain.value = d.name;
+  selectedDomainObj.value = d;
   showAddForm.value = false;
-  dnsLoading.value = true;
   dnsRecords.value = [];
+
+  if (d.readonly) return; // Forpsi — no DNS API
+
+  dnsLoading.value = true;
   try {
     const res = await api.get(`/domains/${d.name}/dns`);
     dnsRecords.value = res.data.records || [];
@@ -322,6 +343,14 @@ onMounted(fetchDomains);
 .domain-body { flex: 1; min-width: 0; }
 .domain-name { font-size: 0.82rem; font-weight: 600; color: rgba(255,255,250,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .domain-sub { font-size: 0.68rem; color: rgba(255,255,255,0.28); margin-top: 0.1rem; }
+.badge-forpsi {
+  display: inline-block;
+  font-size: 0.65rem; font-weight: 700;
+  padding: 1px 6px; border-radius: 999px;
+  background: rgba(192,132,252,0.15);
+  color: #c084fc;
+  border: 1px solid rgba(192,132,252,0.3);
+}
 .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .status-dot.green { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
 .status-dot.red { background: #f87171; }

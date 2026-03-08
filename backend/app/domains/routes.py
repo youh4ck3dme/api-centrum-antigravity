@@ -10,11 +10,12 @@ from ..auth_neon import get_current_user_or_neon
 from ..auth_neon import get_current_user_or_neon
 from ..models import User
 from .scanner import AISentinel
+from ..config import settings
 router = APIRouter()
 
 @router.get("/domains")
 async def get_domains(current_user: User = Depends(get_current_user_or_neon)):
-    """Get list of domains from Websupport API"""
+    """Get list of domains from Websupport API + Forpsi manual list (read-only)"""
     try:
         result = DomainService.list_domains()
         # Filter only domain-type services and normalize to frontend-expected shape
@@ -27,10 +28,29 @@ async def get_domains(current_user: User = Depends(get_current_user_or_neon)):
                 "expireTime": x.get("expireTime"),
                 "autoExtend": x.get("autoExtend"),
                 "serviceName": x.get("serviceName", "domain"),
+                "registrar": "websupport",
+                "readonly": False,
             }
             for x in items
             if x.get("serviceName") == "domain" and x.get("name")
         ]
+
+        # Append Forpsi domains (read-only — no DNS API)
+        ws_names = {d["name"] for d in domains}
+        if settings.FORPSI_DOMAINS:
+            for name in [n.strip() for n in settings.FORPSI_DOMAINS.split(",") if n.strip()]:
+                if name not in ws_names:
+                    domains.append({
+                        "id": f"forpsi-{name}",
+                        "name": name,
+                        "status": "active",
+                        "expireTime": None,
+                        "autoExtend": None,
+                        "serviceName": "domain",
+                        "registrar": "forpsi",
+                        "readonly": True,
+                    })
+
         return {"domains": domains, "total": len(domains)}
     except HTTPException:
         raise
