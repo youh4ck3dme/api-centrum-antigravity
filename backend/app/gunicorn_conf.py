@@ -9,7 +9,7 @@ backlog = 2048
 
 # Worker processes
 # Odporúčaný počet workerov: (2 * cores) + 1
-workers = multiprocessing.cpu_count() * 2 + 1
+workers = 1  # Single worker required for shared in-memory state (WebSocket broadcast, DNS monitor)
 worker_class = "uvicorn.workers.UvicornWorker"
 worker_connections = 1000
 timeout = 30

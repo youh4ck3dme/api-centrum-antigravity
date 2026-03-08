@@ -41,6 +41,7 @@
         <VPS v-else-if="currentTab === 'vps'" />
         <Radar v-else-if="currentTab === 'radar'" />
         <Notes v-else-if="currentTab === 'notes'" />
+        <DNSMonitor v-else-if="currentTab === 'dns-monitor'" />
       </transition>
     </main>
 
@@ -69,6 +70,7 @@ import Performance from "./views/Performance.vue";
 import VPS from "./views/VPS.vue";
 import Radar from "./views/Radar.vue";
 import Notes from "./views/Notes.vue";
+import DNSMonitor from "./views/DNSMonitor.vue";
 import Login from "./views/Login.vue";
 
 const isAuthenticated = ref(!!localStorage.getItem('access_token'));
@@ -82,6 +84,7 @@ const tabs = [
   { id: 'vps',         name: 'VPS',       icon: '🖥️' },
   { id: 'radar',       name: 'Radar',     icon: '🛡️' },
   { id: 'notes',       name: 'Poznámky',  icon: '📝' },
+  { id: 'dns-monitor', name: 'DNS Live',  icon: '🔴' },
 ];
 </script>
 
