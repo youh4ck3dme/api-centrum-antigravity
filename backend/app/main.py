@@ -16,6 +16,8 @@ from .auth_endpoints import router as auth_router
 from .monitoring.routes import router as monitoring_router
 from .backups.routes import router as backup_router
 from .performance.routes import router as performance_router
+from .vps.routes import router as vps_router
+from .radar.routes import router as radar_router
 from .config import settings
 
 from .metrics import performance_metrics
@@ -98,6 +100,8 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(monitoring_router, prefix="/api")
 app.include_router(backup_router, prefix="/api")
 app.include_router(performance_router, prefix="/api")
+app.include_router(vps_router, prefix="/api")
+app.include_router(radar_router, prefix="/api")
 
 @app.get("/health")
 def health():

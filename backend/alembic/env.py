@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from app.db import Base
 from app.config import settings
 from app import models  # ensure models are imported
+from app.radar import models as radar_models  # noqa: F401 — registers radar tables
 
 config = context.config
 fileConfig(config.config_file_name)

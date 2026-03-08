@@ -38,6 +38,8 @@
         <Domains v-else-if="currentTab === 'domains'" />
         <Backups v-else-if="currentTab === 'backups'" />
         <Performance v-else-if="currentTab === 'performance'" />
+        <VPS v-else-if="currentTab === 'vps'" />
+        <Radar v-else-if="currentTab === 'radar'" />
       </transition>
     </main>
 
@@ -63,16 +65,20 @@ import Dashboard from "./views/Dashboard.vue";
 import Domains from "./views/Domains.vue";
 import Backups from "./views/Backups.vue";
 import Performance from "./views/Performance.vue";
+import VPS from "./views/VPS.vue";
+import Radar from "./views/Radar.vue";
 import Login from "./views/Login.vue";
 
 const isAuthenticated = ref(!!localStorage.getItem('access_token'));
 const logout = () => { localStorage.removeItem('access_token'); isAuthenticated.value = false; };
 const currentTab = ref('dashboard');
 const tabs = [
-  { id: 'dashboard', name: 'Dashboard', icon: '📊' },
-  { id: 'domains',   name: 'Domény',    icon: '🌐' },
-  { id: 'backups',   name: 'Zálohy',    icon: '📦' },
-  { id: 'performance', name: 'Výkon',   icon: '⚡' },
+  { id: 'dashboard',   name: 'Dashboard', icon: '📊' },
+  { id: 'domains',     name: 'Domény',    icon: '🌐' },
+  { id: 'backups',     name: 'Zálohy',    icon: '📦' },
+  { id: 'performance', name: 'Výkon',     icon: '⚡' },
+  { id: 'vps',         name: 'VPS',       icon: '🖥️' },
+  { id: 'radar',       name: 'Radar',     icon: '🛡️' },
 ];
 </script>
 
@@ -139,7 +145,7 @@ body {
   border-radius: 12px;
   padding: 3px;
   flex: 1;
-  max-width: 420px;
+  max-width: 620px;
 }
 .nav-tab {
   flex: 1;
