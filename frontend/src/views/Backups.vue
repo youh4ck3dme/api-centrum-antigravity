@@ -143,14 +143,23 @@ const createBackup = async () => {
   }
 };
 
-const downloadBackup = (filename) => {
-  const token = localStorage.getItem('token');
-  const url = `/api/backups/${encodeURIComponent(filename)}/download`;
-  // Open in new tab — browser will prompt download; auth header via cookie/session
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
+const downloadBackup = async (filename) => {
+  const token = localStorage.getItem('access_token');
+  try {
+    const res = await fetch(`/api/backups/${encodeURIComponent(filename)}/download`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) { showToast('Stiahnutie zlyhalo (401/404).', 'error'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    showToast('Stiahnutie zlyhalo.', 'error');
+  }
 };
 
 const deleteBackup = async (filename) => {
