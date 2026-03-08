@@ -26,3 +26,6 @@
   obnovenie cez Websupport API ak je dostupné. Plus competitor monitoring —
   sleduj či niekto nezaregistroval podobnú doménu ako tvoja
   (napr. `nexify-studios.tech`, `nexify-studio.sk`).
+
+
+https://studio-2491913884-9484a.web.app/dashboard - dalsie napady z mojeho projektu !

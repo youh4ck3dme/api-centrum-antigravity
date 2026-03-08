@@ -2,13 +2,16 @@
 
 import re
 import shutil
+import subprocess
+import os
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 from ..config import settings
 
 class BackupService:
     BACKUP_DIR = Path("backups")
-    BACKUP_FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+\.db$")
+    BACKUP_FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+\.(db|sql)$")
 
     @classmethod
     def ensure_backup_dir(cls) -> Path:
@@ -32,36 +35,75 @@ class BackupService:
         except ValueError:
             return None
         return candidate
-            
+
     @classmethod
     def create_backup(cls):
         backup_dir = cls.ensure_backup_dir()
-        
-        # Get DB path from settings
         db_url = settings.DATABASE_URL
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # --- PostgreSQL backup via pg_dump ---
+        if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
+            parsed = urlparse(db_url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or 5432
+            user = parsed.username or "postgres"
+            password = parsed.password or ""
+            dbname = parsed.path.lstrip("/")
+
+            backup_file = f"backup_{timestamp}.sql"
+            backup_path = backup_dir / backup_file
+
+            env = os.environ.copy()
+            env["PGPASSWORD"] = password
+
+            try:
+                result = subprocess.run(
+                    ["pg_dump", "-h", host, "-p", str(port), "-U", user, "-d", dbname, "-f", str(backup_path)],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                if result.returncode != 0:
+                    return {"status": "error", "message": f"pg_dump failed: {result.stderr.strip()}"}
+
+                return {
+                    "status": "success",
+                    "filename": backup_file,
+                    "size": backup_path.stat().st_size,
+                    "timestamp": timestamp,
+                }
+            except FileNotFoundError:
+                return {"status": "error", "message": "pg_dump not found — postgresql-client not installed"}
+            except subprocess.TimeoutExpired:
+                return {"status": "error", "message": "pg_dump timed out after 60 seconds"}
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+
+        # --- SQLite backup via file copy ---
         if db_url.startswith("sqlite:///"):
             db_path = Path(db_url.replace("sqlite:///", "")).resolve()
         else:
-            db_path = Path("test.db").resolve()  # Fallback
-            
+            return {"status": "error", "message": f"Unsupported database URL scheme: {db_url}"}
+
         if not db_path.exists():
             return {"status": "error", "message": f"Database file not found at {db_path}"}
-            
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         backup_file = f"backup_{timestamp}.db"
         backup_path = backup_dir / backup_file
-        
+
         try:
             shutil.copy2(db_path, backup_path)
             return {
-                "status": "success", 
-                "filename": backup_file, 
+                "status": "success",
+                "filename": backup_file,
                 "size": backup_path.stat().st_size,
-                "timestamp": timestamp
+                "timestamp": timestamp,
             }
         except Exception as e:
             return {"status": "error", "message": str(e)}
-            
+
     @classmethod
     def list_backups(cls):
         backup_dir = cls.ensure_backup_dir()
@@ -96,3 +138,9 @@ class BackupService:
             path.unlink()
             return {"status": "success", "message": f"Backup {filename} deleted"}
         return {"status": "error", "message": "Backup not found", "status_code": 404}
+
+    @classmethod
+    def get_backup_path(cls, filename: str) -> Path | None:
+        if not cls._validate_backup_filename(filename):
+            return None
+        return cls._resolve_backup_path(filename)
