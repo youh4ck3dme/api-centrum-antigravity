@@ -10,17 +10,31 @@
           <span class="brand-name">API Centrum</span>
         </div>
 
-        <div class="nav-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            @click="currentTab = tab.id"
-            class="nav-tab"
-            :class="{ active: currentTab === tab.id }"
-          >
-            <span class="tab-icon">{{ tab.icon }}</span>
-            <span class="tab-label">{{ tab.name }}</span>
-          </button>
+        <div class="nav-area">
+          <div class="nav-tabs">
+            <button
+              v-for="tab in mainTabs"
+              :key="tab.id"
+              @click="currentTab = tab.id"
+              class="nav-tab"
+              :class="{ active: currentTab === tab.id }"
+            >
+              <span class="tab-icon">{{ tab.icon }}</span>
+              <span class="tab-label">{{ tab.name }}</span>
+            </button>
+          </div>
+          <div class="nav-tabs nav-tabs-extra">
+            <button
+              v-for="tab in extraTabs"
+              :key="tab.id"
+              @click="currentTab = tab.id"
+              class="nav-tab"
+              :class="{ active: currentTab === tab.id }"
+            >
+              <span class="tab-icon">{{ tab.icon }}</span>
+              <span class="tab-label">{{ tab.name }}</span>
+            </button>
+          </div>
         </div>
 
         <div class="navbar-right">
@@ -86,6 +100,8 @@ const tabs = [
   { id: 'notes',       name: 'Poznámky',  icon: '📝' },
   { id: 'dns-monitor', name: 'DNS Live',  icon: '🔴' },
 ];
+const mainTabs  = tabs.slice(0, 6);
+const extraTabs = tabs.slice(6);
 </script>
 
 <style>
@@ -119,13 +135,12 @@ body {
 .navbar-inner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 1.5rem;
-  height: 60px;
+  padding: 8px 1.5rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.5rem;
 }
-.navbar-brand { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
+.navbar-brand { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; margin-top: 5px; }
 .brand-icon {
   width: 34px; height: 34px;
   background: rgba(255,255,255,0.08);
@@ -142,6 +157,14 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Tab area — two rows */
+.nav-area {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
 /* Tabs */
 .nav-tabs {
   display: flex;
@@ -150,8 +173,10 @@ body {
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 12px;
   padding: 3px;
-  flex: 1;
-  max-width: 620px;
+  width: fit-content;
+}
+.nav-tabs-extra {
+  font-size: 0.76rem;
 }
 .nav-tab {
   flex: 1;
@@ -178,7 +203,7 @@ body {
 @media (min-width: 640px) { .tab-label { display: inline; } }
 
 /* Right side */
-.navbar-right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
+.navbar-right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; margin-top: 5px; }
 .icon-btn {
   background: none; border: none; cursor: pointer;
   font-size: 1rem; opacity: 0.45;
