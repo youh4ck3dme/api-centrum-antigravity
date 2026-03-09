@@ -20,8 +20,9 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
-            git pull origin main
-            # Restart docker containers with the new code
+            git fetch --all
+            git reset --hard origin/main
+            # Clean upgrade
+            docker-compose down
             docker-compose up -d --build
-            # (Optional) Prune old images to save space
             docker image prune -f
