@@ -18,41 +18,43 @@
     <!-- Sidebar / Navbar Container -->
     <nav class="navbar" :class="{ 'is-sidebar': !isDesktop, 'is-centered': isDesktop }">
       <div class="navbar-inner">
-        <div class="navbar-brand" v-if="!isDesktop || true">
+        <div class="navbar-brand">
           <div class="brand-icon">🌐</div>
           <span class="brand-name">API Centrum</span>
         </div>
 
         <div class="nav-area">
-          <div class="nav-tabs-wrapper">
-            <div class="nav-tabs-label">Hlavné menu</div>
-            <div class="nav-tabs">
-              <button
-                v-for="tab in mainTabs"
-                :key="tab.id"
-                @click="changeTab(tab.id)"
-                class="nav-tab"
-                :class="{ active: currentTab === tab.id }"
-              >
-                <span class="tab-icon">{{ tab.icon }}</span>
-                <span class="tab-label">{{ tab.name }}</span>
-              </button>
+          <div class="nav-tabs-column">
+            <div class="nav-tabs-wrapper">
+              <div class="nav-tabs-label">Hlavné menu</div>
+              <div class="nav-tabs">
+                <button
+                  v-for="tab in mainTabs"
+                  :key="tab.id"
+                  @click="changeTab(tab.id)"
+                  class="nav-tab"
+                  :class="{ active: currentTab === tab.id }"
+                >
+                  <span class="tab-icon">{{ tab.icon }}</span>
+                  <span class="tab-label">{{ tab.name }}</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="nav-tabs-wrapper">
-            <div class="nav-tabs-label">Extra nástroje</div>
-            <div class="nav-tabs nav-tabs-extra">
-              <button
-                v-for="tab in extraTabs"
-                :key="tab.id"
-                @click="changeTab(tab.id)"
-                class="nav-tab"
-                :class="{ active: currentTab === tab.id }"
-              >
-                <span class="tab-icon">{{ tab.icon }}</span>
-                <span class="tab-label">{{ tab.name }}</span>
-              </button>
+            <div class="nav-tabs-wrapper">
+              <div class="nav-tabs-label">Extra nástroje</div>
+              <div class="nav-tabs nav-tabs-extra">
+                <button
+                  v-for="tab in extraTabs"
+                  :key="tab.id"
+                  @click="changeTab(tab.id)"
+                  class="nav-tab"
+                  :class="{ active: currentTab === tab.id }"
+                >
+                  <span class="tab-icon">{{ tab.icon }}</span>
+                  <span class="tab-label">{{ tab.name }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -283,23 +285,25 @@ body {
 .navbar.is-centered {
   position: fixed; top: 1.5rem; left: 50%;
   transform: translateX(-50%);
-  width: min(90%, 1200px);
+  width: min(95%, 1200px);
   background: rgba(15,15,15,0.8); backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
+  border-radius: 24px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02);
 }
 
 .navbar-inner {
   height: 100%; width: 100%;
   padding: 1.5rem;
-  display: flex; flex-direction: column; gap: 2rem;
+  display: flex; flex-direction: column; gap: 1.5rem;
 }
 .navbar.is-centered .navbar-inner {
-  flex-direction: row; height: auto; align-items: center; padding: 0.75rem 1.5rem; gap: 2rem;
+  height: auto; align-items: center; padding: 1.25rem 2rem; gap: 1rem;
 }
 
 .navbar-brand { display: flex; align-items: center; gap: 0.8rem; }
+.navbar.is-centered .navbar-brand { margin-bottom: 0.5rem; }
+
 .brand-icon {
   width: 36px; height: 36px;
   background: linear-gradient(135deg, #1e1e1e, #0e0e0e);
@@ -308,22 +312,30 @@ body {
 }
 .brand-name { font-weight: 700; color: #fff; letter-spacing: -0.02em; }
 
-.nav-area { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-.navbar.is-centered .nav-area { flex-direction: row; align-items: center; gap: 1rem; }
+.nav-area { width: 100%; }
+.nav-tabs-column { display: flex; flex-direction: column; gap: 1.5rem; }
+.navbar.is-centered .nav-tabs-column { flex-direction: row; justify-content: center; gap: 2rem; flex-wrap: wrap; }
 
 .nav-tabs-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
-.navbar.is-centered .nav-tabs-wrapper { flex-direction: row; align-items: center; }
+.navbar.is-centered .nav-tabs-wrapper { flex-direction: row; align-items: center; gap: 0.75rem; }
 
 .nav-tabs-label {
   font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.2);
   text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.5rem;
 }
-.navbar.is-centered .nav-tabs-label { display: none; }
+.navbar.is-centered .nav-tabs-label { font-size: 0.6rem; padding-left: 0; min-width: max-content; }
 
 .nav-tabs {
   display: flex; flex-direction: column; gap: 4px;
 }
-.navbar.is-centered .nav-tabs { flex-direction: row; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; }
+.navbar.is-centered .nav-tabs { 
+  flex-direction: row; 
+  flex-wrap: wrap;
+  justify-content: center;
+  background: rgba(255,255,255,0.03); 
+  padding: 4px; 
+  border-radius: 12px; 
+}
 
 .nav-tab {
   display: flex; align-items: center; gap: 0.75rem;
@@ -332,24 +344,32 @@ body {
   font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
   text-align: left;
 }
-.navbar.is-centered .nav-tab { padding: 0.5rem 0.9rem; font-size: 0.85rem; gap: 0.5rem; border-radius: 10px; }
+.navbar.is-centered .nav-tab { padding: 0.5rem 0.9rem; font-size: 0.82rem; gap: 0.5rem; border-radius: 10px; }
 
 .nav-tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
 .nav-tab.active { background: rgba(255,255,255,0.1); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
 /* Footer / Profile */
 .navbar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 1rem; }
-.navbar.is-centered .navbar-footer { margin-top: 0; flex-direction: row; align-items: center; margin-left: auto; }
+.navbar.is-centered .navbar-footer { 
+  margin-top: 0.5rem; 
+  flex-direction: row; 
+  align-items: center; 
+  justify-content: center;
+  width: 100%;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 1rem;
+}
 
 .user-profile { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; }
 .user-info { display: flex; flex-direction: column; }
-.navbar.is-centered .user-info { display: none; } /* On desktop, hide extra text for space */
+.navbar.is-centered .user-info { flex-direction: row; gap: 1rem; align-items: center; }
 
 .user-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
 .logout-link { background: none; border: none; color: #f87171; font-size: 0.75rem; cursor: pointer; text-align: left; }
 .avatar {
   width: 32px; height: 32px; border-radius: 50%;
-  background: #27272a; border: 1px solid rgba(255,255,255,0.1);
+  background: #27272a; border: 1px solid rgba(255,255,250,0.1);
   display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: #94a3b8;
 }
 

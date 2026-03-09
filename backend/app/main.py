@@ -7,6 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from .instrumentation import limiter
 from .domains import routes as domain_routes
 from .ssl import routes as ssl_routes
@@ -110,6 +111,7 @@ app.include_router(dns_monitor_router, prefix="/api")
 app.include_router(provision_router, prefix="/api")
 app.include_router(license_router, prefix="/api")
 
+app.mount("/icons", StaticFiles(directory="frontend/public/icons"), name="icons")
 @app.on_event("startup")
 async def startup_event():
     import asyncio
