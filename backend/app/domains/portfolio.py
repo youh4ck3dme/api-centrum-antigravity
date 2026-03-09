@@ -5,6 +5,8 @@ import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
+from functools import lru_cache
+from datetime import datetime
 
 import dns.resolver
 
@@ -79,7 +81,17 @@ def _check_competitors(ws_domains: List[dict]) -> List[Dict[str, str]]:
     return hits[:20]
 
 
+# Cache portfolio for 15 minutes max
+_portfolio_cache = {"timestamp": 0, "data": None}
+
 def get_portfolio() -> Dict[str, Any]:
+    global _portfolio_cache
+    
+    current_time = time.time()
+    # If cache is valid (less than 15 mins old), return it
+    if _portfolio_cache["data"] is not None and (current_time - _portfolio_cache["timestamp"] < 900):
+        return _portfolio_cache["data"]
+
     # ── Fetch Websupport domains ──────────────────────────────────────────────
     result = WebsupportService.get_domains()
     items = result.get("items", [])
@@ -140,7 +152,7 @@ def get_portfolio() -> Dict[str, Any]:
         logger.warning("Competitor check failed: %s", e)
         competitor_hits = []
 
-    return {
+    result = {
         "domains": all_domains,
         "total": len(all_domains),
         "critical": critical,
@@ -149,3 +161,8 @@ def get_portfolio() -> Dict[str, Any]:
         "annual_cost_eur": annual_cost,
         "competitor_watch": competitor_hits,
     }
+    
+    _portfolio_cache["data"] = result
+    _portfolio_cache["timestamp"] = time.time()
+    
+    return result

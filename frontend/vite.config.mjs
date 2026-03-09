@@ -24,6 +24,16 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-vue': ['vue'],
+          'vendor-lucide': ['lucide-vue-next']
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       "/api": {

@@ -89,21 +89,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
-import Dashboard from "./views/Dashboard.vue";
-import Domains from "./views/Domains.vue";
-import Backups from "./views/Backups.vue";
-import Performance from "./views/Performance.vue";
-import VPS from "./views/VPS.vue";
-import Radar from "./views/Radar.vue";
-import Notes from "./views/Notes.vue";
-import DNSMonitor from "./views/DNSMonitor.vue";
-import Login from "./views/Login.vue";
-import LicenseStatus from "./components/LicenseStatus.vue";
+import { ref, onMounted, onUnmounted, defineAsyncComponent } from "vue";
+import Login from "./views/Login.vue"; // Login is critical for initial render
 import LicenseActivationModal from "./components/LicenseActivationModal.vue";
+import LicenseStatus from "./components/LicenseStatus.vue";
 import AIChat from "./components/AIChat.vue";
 import LiquidGlassNav from "./components/LiquidGlassNav.vue";
 import { LayoutDashboard, Globe, Activity, HardDrive, Zap, Server, Shield, FileText } from 'lucide-vue-next';
+
+// Lazy-loaded Views (Performance Optimization)
+const Dashboard = defineAsyncComponent(() => import("./views/Dashboard.vue"));
+const Domains = defineAsyncComponent(() => import("./views/Domains.vue"));
+const DNSMonitor = defineAsyncComponent(() => import("./views/DNSMonitor.vue"));
+const Backups = defineAsyncComponent(() => import("./views/Backups.vue"));
+const Performance = defineAsyncComponent(() => import("./views/Performance.vue"));
+const VPS = defineAsyncComponent(() => import("./views/VPS.vue"));
+const Radar = defineAsyncComponent(() => import("./views/Radar.vue"));
+const Notes = defineAsyncComponent(() => import("./views/Notes.vue"));
 
 const isAuthenticated = ref(!!localStorage.getItem('access_token'));
 const isUnlimited = ref(false);

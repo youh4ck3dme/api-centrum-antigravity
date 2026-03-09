@@ -7,6 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from .instrumentation import limiter
 from .domains import routes as domain_routes
@@ -46,6 +47,10 @@ CSP_HEADER = (
 DOCS_PREFIXES = ("/docs", "/redoc", "/openapi.json")
 
 app = FastAPI(title="Domain & SSL Manager API")
+
+# Add GZip compression for payloads > 1000 bytes
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 instrumentor = Instrumentator()
 instrumentor.instrument(app).expose(app)
 app.state.limiter = limiter
