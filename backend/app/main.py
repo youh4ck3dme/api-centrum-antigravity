@@ -22,6 +22,7 @@ from .radar.routes import router as radar_router
 from .dns_monitor.routes import router as dns_monitor_router
 from .dns_monitor.provision import router as provision_router
 from .license_routes import router as license_router
+from .ai_routes import router as ai_router
 from .dns_monitor.monitor import dns_poll_loop
 from .config import settings
 
@@ -126,6 +127,7 @@ else:
     print(f"Warning: Frontend public directory not found at {FRONTEND_PUBLIC}")
 
 app.include_router(license_router, prefix="/api")
+app.include_router(ai_router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():

@@ -105,6 +105,9 @@
       @activate="handleActivateLicense" 
     />
 
+    <!-- Global AI Chat -->
+    <AIChat />
+
     <!-- Overlay for mobile sidebar -->
     <div v-if="isSidebarOpen && !isDesktop" class="sidebar-overlay" @click="isSidebarOpen = false"></div>
 
@@ -124,6 +127,7 @@ import DNSMonitor from "./views/DNSMonitor.vue";
 import Login from "./views/Login.vue";
 import LicenseStatus from "./components/LicenseStatus.vue";
 import LicenseActivationModal from "./components/LicenseActivationModal.vue";
+import AIChat from "./components/AIChat.vue";
 
 const isAuthenticated = ref(!!localStorage.getItem('access_token'));
 const isUnlimited = ref(false);

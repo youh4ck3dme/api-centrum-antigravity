@@ -77,6 +77,51 @@
       </div>
     </div>
 
+    <!-- AI Audit Panel (Floating / Conditional) -->
+    <div v-if="aiAuditResult" class="panel ai-panel">
+      <div class="panel-header ai-header">
+        <div class="ai-title-wrap">
+          <span class="ai-sparkle">✨</span>
+          <span class="panel-title">AI Autopilot Odporúčania — {{ auditedDomain }}</span>
+        </div>
+        <button @click="aiAuditResult = null" class="btn-clear text-white">Zavrieť</button>
+      </div>
+      <div class="ai-body">
+        <div class="ai-score-card">
+          <div class="score-circle" :style="{ borderColor: scoreColor(aiAuditResult.score) }">
+            <span class="score-num">{{ aiAuditResult.score }}</span>
+            <span class="score-label">Bezpečnosť</span>
+          </div>
+          <div class="score-info">
+            <p v-for="(issue, i) in aiAuditResult.issues" :key="i" class="ai-issue">
+              🔴 {{ issue }}
+            </p>
+          </div>
+        </div>
+
+        <div class="recommendations-list">
+          <div v-for="(rec, i) in aiAuditResult.recommendations" :key="i" class="rec-card">
+            <div class="rec-header">
+              <span class="rec-type">{{ rec.type }}</span>
+              <span class="rec-status" v-if="rec.is_fixable">🔧 Opraviteľné</span>
+            </div>
+            <p class="rec-msg">{{ rec.reason }}</p>
+            <div class="rec-content-box">
+              <code>{{ rec.name }} IN {{ rec.type }} {{ rec.content }}</code>
+            </div>
+            <button 
+              v-if="rec.is_fixable" 
+              @click="applyAiFix(rec)" 
+              class="btn-apply-fix"
+              :disabled="fixingIndex === i"
+            >
+              {{ fixingIndex === i ? 'Aplikujem...' : 'Aplikovať opravu' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Live feed -->
     <div class="panel">
       <div class="panel-header">
@@ -84,7 +129,12 @@
           <span class="live-indicator" :class="wsStatus === 'connected' ? 'pulse' : ''">●</span>
           <span class="panel-title">Live Feed</span>
         </div>
-        <button @click="feed = []" class="btn-clear">Vymazať</button>
+        <div class="header-actions">
+          <button @click="startGlobalAudit" class="btn-ai-audit" :disabled="auditLoading">
+            {{ auditLoading ? 'AI Analyzuje...' : '✨ AI Security Audit' }}
+          </button>
+          <button @click="feed = []" class="btn-clear">Vymazať</button>
+        </div>
       </div>
 
       <div v-if="feed.length === 0" class="empty-feed">
@@ -257,6 +307,69 @@ async function pollJobStatus(jobId) {
     }
   }, 3000);
 }
+// ── AI Autopilot ─────────────────────────────────────────────────────────
+const aiAuditResult = ref(null);
+const auditLoading = ref(false);
+const auditedDomain = ref('');
+const fixingIndex = ref(-1);
+
+async function startGlobalAudit() {
+  // Take the first domain from the snap as example for now, or let user pick.
+  // We'll pick the most active/visible one or prompt. 
+  // Let's just find the first domain we have data for.
+  const domains = Object.keys(api.defaults.headers.common); // This is not right, let's use a dynamic way
+  // Actually, we can just get the domains from the feed or a separate fetch.
+  // For now, let's use the first domain name we find in domainCount context.
+  // Better: We'll fetch the domain list first.
+  auditLoading.value = true;
+  try {
+    const listRes = await api.get('/domains'); 
+    const firstDomain = listRes.data.domains?.[0]?.name;
+    if (!firstDomain) throw new Error("Žiadne domény na analýzu");
+
+    auditedDomain.value = firstDomain;
+    const res = await api.post(`/ai/audit/${firstDomain}`);
+    aiAuditResult.value = res.data;
+  } catch (err) {
+    alert("AI Audit zlyhal: " + (err.response?.data?.detail || err.message));
+  } finally {
+    auditLoading.value = false;
+  }
+}
+
+async function applyAiFix(rec) {
+  if (!confirm(`Naozaj chcete pridať tento ${rec.type} záznam pre ${auditedDomain.value}?`)) return;
+  
+  const idx = aiAuditResult.value.recommendations.indexOf(rec);
+  fixingIndex.value = idx;
+  
+  try {
+    await api.post('/ai/fix', {
+      domain: auditedDomain.value,
+      record: {
+        type: rec.type,
+        name: rec.name,
+        content: rec.content,
+        ttl: 3600
+      }
+    });
+    alert("DNS záznam bol úspešne pridaný!");
+    // Remove from list
+    aiAuditResult.value.recommendations.splice(idx, 1);
+  } catch (err) {
+    alert("Oprava zlyhala: " + (err.response?.data?.detail || err.message));
+  } finally {
+    fixingIndex.value = -1;
+  }
+}
+
+const scoreColor = (s) => {
+  if (s > 80) return '#4ade80';
+  if (s > 50) return '#facc15';
+  return '#f87171';
+};
+
+import api from '../api/api';
 </script>
 
 <style scoped>
@@ -421,4 +534,65 @@ async function pollJobStatus(jobId) {
 .status-info { background: rgba(99,102,241,0.1); color: #a5b4fc; }
 .status-ok   { background: rgba(74,222,128,0.1); color: #4ade80; }
 .status-err  { background: rgba(248,113,113,0.1); color: #f87171; }
+/* ── AI Autopilot Styles ─────────────────── */
+.ai-panel {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.4), rgba(15, 23, 42, 0.4));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  margin-bottom: 1.5rem;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.05);
+}
+.ai-header { border-bottom: 1px solid rgba(99, 102, 241, 0.15); }
+.ai-title-wrap { display: flex; align-items: center; gap: 0.75rem; }
+.ai-sparkle { font-size: 1.25rem; animation: sparkle 2s infinite; }
+@keyframes sparkle {
+  0%, 100% { opacity: 0.8; transform: scale(1); filter: drop-shadow(0 0 2px #818cf8); }
+  50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px #818cf8); }
+}
+
+.ai-body { padding: 1.5rem; }
+.ai-score-card {
+  display: flex; align-items: center; gap: 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem;
+}
+
+.score-circle {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 4px solid #4ade80;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+.score-num { font-size: 1.5rem; font-weight: 800; color: #fff; line-height: 1; }
+.score-label { font-size: 0.6rem; text-transform: uppercase; opacity: 0.6; }
+
+.ai-issue { font-size: 0.85rem; color: #f87171; margin: 0.25rem 0; font-weight: 500; }
+
+.recommendations-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.rec-card {
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
+}
+.rec-header { display: flex; justify-content: space-between; align-items: center; }
+.rec-type { background: #6366f1; color: white; padding: 0.1rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+.rec-status { font-size: 0.7rem; color: #4ade80; font-weight: 600; }
+.rec-msg { font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.4; }
+.rec-content-box { background: #000; padding: 0.6rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; color: #4ade80; overflow-x: auto; }
+
+.btn-ai-audit {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #c7d2fe; padding: 0.4rem 0.9rem; border-radius: 8px;
+  font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btn-ai-audit:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  border-color: #818cf8; transform: translateY(-1px);
+}
+
+.btn-apply-fix {
+  background: #059669; color: white; border: none; padding: 0.5rem; border-radius: 8px;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.btn-apply-fix:hover:not(:disabled) { background: #047857; }
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
 </style>
