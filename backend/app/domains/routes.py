@@ -116,6 +116,15 @@ async def delete_domain_dns(domain_name: str, record_id: int, db: Session = Depe
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/domains/portfolio")
+async def get_domain_portfolio(current_user: User = Depends(get_current_user_or_neon)):
+    """Domain Portfolio Intelligence — expiry tracking, cost estimate, competitor watch."""
+    try:
+        return get_portfolio()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/domains/{domain_id}")
 async def get_domain_details(domain_id: int, current_user: User = Depends(get_current_user_or_neon)):
     """Get domain details from Websupport API"""

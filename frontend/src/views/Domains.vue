@@ -7,11 +7,20 @@
         <h2 class="page-title">Správa Domén</h2>
         <p class="page-sub">{{ domains.length }} domén celkovo · {{ wsDomains.length }} Websupport · {{ forpsiDomains.length }} Forpsi</p>
       </div>
-      <button @click="fetchDomains" class="btn-ghost" :disabled="loading">
-        <span :style="loading ? 'display:inline-block;animation:spin .7s linear infinite' : ''">🔄</span>
-        {{ loading ? 'Načítavam...' : 'Obnoviť' }}
-      </button>
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+        <div class="main-view-tabs">
+          <button class="view-tab" :class="{ active: mainView === 'domains' }" @click="mainView = 'domains'">🌐 Domény</button>
+          <button class="view-tab" :class="{ active: mainView === 'portfolio' }" @click="switchToPortfolio">📊 Portfolio</button>
+        </div>
+        <button @click="mainView === 'domains' ? fetchDomains() : switchToPortfolio(true)" class="btn-ghost" :disabled="loading || portfolioLoading">
+          <span :style="(loading || portfolioLoading) ? 'display:inline-block;animation:spin .7s linear infinite' : ''">🔄</span>
+          {{ (loading || portfolioLoading) ? 'Načítavam...' : 'Obnoviť' }}
+        </button>
+      </div>
     </div>
+
+    <!-- ── Domains view ─────────────────────────────────────────────────── -->
+    <template v-if="mainView === 'domains'">
 
     <!-- Loading -->
     <div v-if="loading && !domains.length" class="empty-state">
@@ -146,6 +155,109 @@
       </div>
 
     </div>
+
+    </template><!-- end domains view -->
+
+    <!-- ── Portfolio view ──────────────────────────────────────────────── -->
+    <template v-else-if="mainView === 'portfolio'">
+      <div v-if="portfolioLoading" class="empty-state">
+        <div class="spinner"></div>
+        <span>Analyzujem portfólio...</span>
+      </div>
+      <div v-else-if="portfolioData" class="portfolio-view">
+
+        <!-- Stat cards -->
+        <div class="pf-cards">
+          <div class="pf-card">
+            <div class="pf-card-icon">🌐</div>
+            <div class="pf-card-val">{{ portfolioData.total }}</div>
+            <div class="pf-card-label">Celkovo domén</div>
+          </div>
+          <div class="pf-card critical">
+            <div class="pf-card-icon">🔴</div>
+            <div class="pf-card-val">{{ portfolioData.critical }}</div>
+            <div class="pf-card-label">Expirujú &lt;30 dní</div>
+          </div>
+          <div class="pf-card warning">
+            <div class="pf-card-icon">🟡</div>
+            <div class="pf-card-val">{{ portfolioData.warning }}</div>
+            <div class="pf-card-label">Expirujú &lt;90 dní</div>
+          </div>
+          <div class="pf-card cost">
+            <div class="pf-card-icon">💶</div>
+            <div class="pf-card-val">~{{ portfolioData.annual_cost_eur }}€</div>
+            <div class="pf-card-label">Ročné náklady</div>
+          </div>
+        </div>
+
+        <!-- Domain expiry table -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Expirácia domén</span>
+            <span class="count-badge">{{ portfolioData.domains.length }}</span>
+          </div>
+          <div class="pf-table-wrap">
+            <table class="pf-table">
+              <thead>
+                <tr>
+                  <th>Doména</th>
+                  <th>Registrátor</th>
+                  <th>Zostatok</th>
+                  <th>Auto-obnova</th>
+                  <th>Riziko</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="d in portfolioData.domains" :key="d.name" class="pf-row">
+                  <td class="mono">{{ d.name }}</td>
+                  <td>
+                    <span class="reg-badge" :class="d.registrar">{{ d.registrar }}</span>
+                  </td>
+                  <td>
+                    <span v-if="d.days_until_expiry !== null">{{ d.days_until_expiry }} dní</span>
+                    <span v-else class="text-dim">—</span>
+                  </td>
+                  <td>
+                    <span v-if="d.autoExtend === true" class="ae-yes">✓ Áno</span>
+                    <span v-else-if="d.autoExtend === false" class="ae-no">✗ Nie</span>
+                    <span v-else class="text-dim">—</span>
+                  </td>
+                  <td>
+                    <span class="risk-badge" :class="d.risk">
+                      {{ d.risk === 'critical' ? '🔴 KRITICKÉ' : d.risk === 'warning' ? '🟡 VAROVANIE' : d.risk === 'safe' ? '🟢 OK' : '⚪ —' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Competitor watch -->
+        <div class="panel" v-if="portfolioData.competitor_watch?.length">
+          <div class="panel-header">
+            <span class="panel-title">⚠️ Competitor Watch</span>
+            <span class="count-badge">{{ portfolioData.competitor_watch.length }}</span>
+          </div>
+          <div class="pf-table-wrap">
+            <table class="pf-table">
+              <thead><tr><th>Tvoja doména</th><th>Registrovaná varianta</th></tr></thead>
+              <tbody>
+                <tr v-for="c in portfolioData.competitor_watch" :key="c.variant" class="pf-row competitor-row">
+                  <td class="mono">{{ c.original }}</td>
+                  <td class="mono comp-hit">{{ c.variant }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div v-else class="empty-state" style="padding:1.5rem">
+          <span>✅ Žiadne podozrivé varianty domén nenájdené</span>
+        </div>
+
+      </div>
+    </template><!-- end portfolio view -->
+
   </div>
 </template>
 
@@ -153,6 +265,8 @@
 import { ref, computed, onMounted } from "vue";
 import api from "../api/api";
 import SentinelAudit from "../components/domains/SentinelAudit.vue";
+
+const mainView = ref('domains');   // 'domains' | 'portfolio'
 
 const domains = ref([]);
 const loading = ref(false);
@@ -164,6 +278,27 @@ const showAddForm = ref(false);
 const savingRecord = ref(false);
 const newRec = ref({ type: "A", name: "", content: "", ttl: 600 });
 const activeTab = ref('dns');
+
+// Portfolio
+const portfolioData = ref(null);
+const portfolioLoading = ref(false);
+
+const fetchPortfolio = async () => {
+  portfolioLoading.value = true;
+  try {
+    const res = await api.get('/domains/portfolio');
+    portfolioData.value = res.data;
+  } catch (err) {
+    console.error(err);
+  } finally {
+    portfolioLoading.value = false;
+  }
+};
+
+const switchToPortfolio = (force = false) => {
+  mainView.value = 'portfolio';
+  if (!portfolioData.value || force) fetchPortfolio();
+};
 
 const wsDomains = computed(() => domains.value.filter(d => !d.readonly));
 const forpsiDomains = computed(() => domains.value.filter(d => d.readonly));
@@ -478,4 +613,85 @@ onMounted(fetchDomains);
   border-top-color: rgba(255,255,255,0.5);
   border-radius: 50%; animation: spin 0.7s linear infinite;
 }
+
+/* ── Main view tabs ──────────────── */
+.main-view-tabs {
+  display: flex; gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 3px;
+}
+.view-tab {
+  padding: 0.35rem 0.8rem;
+  border-radius: 8px; border: none; background: transparent;
+  color: rgba(255,255,250,0.45); font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: all 0.18s;
+}
+.view-tab:hover { color: rgba(255,255,250,0.8); }
+.view-tab.active {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,250,0.95);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* ── Portfolio view ─────────────── */
+.portfolio-view { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.pf-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+@media (max-width: 900px) { .pf-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .pf-cards { grid-template-columns: 1fr 1fr; gap: 0.6rem; } }
+
+.pf-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 1.25rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  transition: all 0.2s;
+}
+.pf-card:hover { background: rgba(255,255,255,0.06); }
+.pf-card.critical { border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.05); }
+.pf-card.warning  { border-color: rgba(251,191,36,0.25); background: rgba(251,191,36,0.05); }
+.pf-card.cost     { border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.04); }
+
+.pf-card-icon { font-size: 1.2rem; }
+.pf-card-val  { font-size: 1.6rem; font-weight: 700; color: rgba(255,255,250,0.92); letter-spacing: -0.03em; }
+.pf-card-label { font-size: 0.7rem; color: rgba(255,255,255,0.35); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.pf-table-wrap { overflow-x: auto; }
+.pf-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.pf-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.07); }
+.pf-table th {
+  padding: 0.6rem 1rem; text-align: left;
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+}
+.pf-row { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.12s; }
+.pf-row:hover { background: rgba(255,255,255,0.03); }
+.pf-row:last-child { border-bottom: none; }
+.pf-table td { padding: 0.65rem 1rem; color: rgba(255,255,250,0.75); vertical-align: middle; }
+
+.reg-badge {
+  display: inline-block; padding: 0.15rem 0.55rem;
+  border-radius: 999px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;
+}
+.reg-badge.websupport { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
+.reg-badge.forpsi     { background: rgba(192,132,252,0.12); color: #c084fc; border: 1px solid rgba(192,132,252,0.2); }
+
+.risk-badge { font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 8px; }
+.risk-badge.critical { background: rgba(248,113,113,0.12); color: #f87171; }
+.risk-badge.warning  { background: rgba(251,191,36,0.12); color: #fbbf24; }
+.risk-badge.safe     { background: rgba(74,222,128,0.1); color: #4ade80; }
+.risk-badge.unknown  { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.35); }
+
+.ae-yes { color: #4ade80; font-size: 0.78rem; font-weight: 600; }
+.ae-no  { color: #f87171; font-size: 0.78rem; font-weight: 600; }
+.text-dim { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
+
+.competitor-row { background: rgba(251,191,36,0.03); }
+.comp-hit { color: #fbbf24; }
 </style>
