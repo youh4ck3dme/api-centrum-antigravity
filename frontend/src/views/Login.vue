@@ -9,7 +9,9 @@
     <div class="glass-card">
       <!-- Logo -->
       <div class="logo-wrap">
-        <div class="logo-icon">🌐</div>
+        <div class="logo-icon">
+          <img src="/pwa-192x192.png" alt="Logo" class="logo-img" />
+        </div>
       </div>
 
       <h1 class="title">API Centrum</h1>
@@ -183,7 +185,6 @@ const login = async () => {
   width: 60px; height: 60px;
   border-radius: 18px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.75rem;
   background: rgba(255,255,250,0.08);
   box-shadow:
     0 8px 32px rgba(0,0,0,0.5),
@@ -191,7 +192,9 @@ const login = async () => {
     inset 0 -1px 0 rgba(0,0,0,0.2);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
 }
+.logo-img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ── Typography ───────────────────────────────── */
 .title {
