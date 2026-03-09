@@ -7,9 +7,9 @@ from .. import models
 from ..schemas import DomainCreate
 from .services import DomainService
 from ..auth_neon import get_current_user_or_neon
-from ..auth_neon import get_current_user_or_neon
 from ..models import User
 from .scanner import AISentinel
+from .portfolio import get_portfolio
 from ..config import settings
 router = APIRouter()
 
