@@ -26,6 +26,7 @@ class User(Base):
     domains = relationship("Domain", back_populates="user")
     totp_secret = Column(String(32), nullable=True)
     two_factor_enabled = Column(Boolean, default=False)
+    is_unlimited = Column(Boolean, default=False)
 
 
 class AuditLog(Base):
@@ -35,4 +36,17 @@ class AuditLog(Base):
     action = Column(String(255))
     detail = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class License(Base):
+    __tablename__ = "licenses"
+    id = Column(Integer, primary_key=True, index=True)
+    key_id = Column(String(100), unique=True, index=True, nullable=False)
+    hash = Column(String(255), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_active = Column(Boolean, default=True)
+    activated_at = Column(DateTime, nullable=True)
+    revoked = Column(Boolean, default=False)
+    
+    user = relationship("User")
 

@@ -105,6 +105,7 @@ def clean_db_state(create_test_tables):
     try:
         # Delete in reverse dependency order to avoid FK violations
         session.execute(text("DELETE FROM audit_logs"))
+        session.execute(text("DELETE FROM licenses"))
         session.execute(text("DELETE FROM domains"))
         session.execute(text("DELETE FROM users"))
         session.execute(text("DELETE FROM roles"))
