@@ -109,9 +109,24 @@ app.include_router(vps_router, prefix="/api")
 app.include_router(radar_router, prefix="/api")
 app.include_router(dns_monitor_router, prefix="/api")
 app.include_router(provision_router, prefix="/api")
+import os
+from pathlib import Path
+
+# Cesta k statickým súborom frontendu
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+FRONTEND_PUBLIC = PROJECT_ROOT / "frontend" / "public"
+
+if FRONTEND_PUBLIC.exists():
+    # Najskôr špecifické cesty
+    app.mount("/icons", StaticFiles(directory=str(FRONTEND_PUBLIC / "icons")), name="icons")
+    # Potom root pre súbory ako /pwa-192x192.png (pokiaľ nie sú chytené inými routami)
+    app.mount("/", StaticFiles(directory=str(FRONTEND_PUBLIC)), name="public")
+else:
+    print(f"Warning: Frontend public directory not found at {FRONTEND_PUBLIC}")
+
 app.include_router(license_router, prefix="/api")
 
-app.mount("/icons", StaticFiles(directory="frontend/public/icons"), name="icons")
 @app.on_event("startup")
 async def startup_event():
     import asyncio
