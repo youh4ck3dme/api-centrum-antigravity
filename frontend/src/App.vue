@@ -28,39 +28,12 @@
         </div>
 
         <div class="nav-area">
-          <div class="nav-tabs-column">
-            <div class="nav-tabs-wrapper">
-              <div class="nav-tabs-label">Hlavné menu</div>
-              <div class="nav-tabs">
-                <button
-                  v-for="tab in mainTabs"
-                  :key="tab.id"
-                  @click="changeTab(tab.id)"
-                  class="nav-tab"
-                  :class="{ active: currentTab === tab.id }"
-                >
-                  <span class="tab-icon">{{ tab.icon }}</span>
-                  <span class="tab-label">{{ tab.name }}</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="nav-tabs-wrapper">
-              <div class="nav-tabs-label">Extra nástroje</div>
-              <div class="nav-tabs nav-tabs-extra">
-                <button
-                  v-for="tab in extraTabs"
-                  :key="tab.id"
-                  @click="changeTab(tab.id)"
-                  class="nav-tab"
-                  :class="{ active: currentTab === tab.id }"
-                >
-                  <span class="tab-icon">{{ tab.icon }}</span>
-                  <span class="tab-label">{{ tab.name }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
+          <LiquidGlassNav 
+            :items="tabs" 
+            :activeId="currentTab" 
+            @select="(item) => changeTab(item.id)" 
+            :className="isDesktop ? 'horizontal' : ''"
+          />
         </div>
 
         <div class="navbar-footer">
@@ -129,10 +102,14 @@ import Login from "./views/Login.vue";
 import LicenseStatus from "./components/LicenseStatus.vue";
 import LicenseActivationModal from "./components/LicenseActivationModal.vue";
 import AIChat from "./components/AIChat.vue";
+import LiquidGlassNav from "./components/LiquidGlassNav.vue";
+import { LayoutDashboard, Globe, Activity, HardDrive, Zap, Server, Shield, FileText } from 'lucide-vue-next';
 
 const isAuthenticated = ref(!!localStorage.getItem('access_token'));
 const isUnlimited = ref(false);
-const currentTab = ref('dashboard');
+
+const initialTab = window.location.pathname.substring(1) || 'dashboard';
+const currentTab = ref(initialTab);
 const isSidebarOpen = ref(false);
 const isDesktop = ref(window.innerWidth >= 1024);
 
@@ -143,18 +120,15 @@ const activationError = ref('');
 const activationSuccess = ref('');
 
 const tabs = [
-  { id: 'dashboard',   name: 'Dashboard', icon: '📊' },
-  { id: 'domains',     name: 'Domény',    icon: '🌐' },
-  { id: 'dns-monitor', name: 'DNS Live',  icon: '🔴' },
-  { id: 'backups',     name: 'Zálohy',    icon: '📦' },
-  { id: 'performance', name: 'Výkon',     icon: '⚡' },
-  { id: 'vps',         name: 'VPS',       icon: '🖥️' },
-  { id: 'radar',       name: 'Radar',     icon: '🛡️' },
-  { id: 'notes',       name: 'Poznámky',  icon: '📝' },
+  { id: 'dashboard',   label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'domains',     label: 'Domény',    icon: Globe },
+  { id: 'dns-monitor', label: 'DNS Live',  icon: Activity },
+  { id: 'backups',     label: 'Zálohy',    icon: HardDrive },
+  { id: 'performance', label: 'Výkon',     icon: Zap },
+  { id: 'vps',         label: 'VPS',       icon: Server },
+  { id: 'radar',       label: 'Radar',     icon: Shield },
+  { id: 'notes',       label: 'Poznámky',  icon: FileText },
 ];
-
-const mainTabs  = tabs.slice(0, 3);
-const extraTabs = tabs.slice(3);
 
 const checkAuth = () => {
   isAuthenticated.value = true;
@@ -169,6 +143,9 @@ const logout = () => {
 const changeTab = (tabId) => {
   currentTab.value = tabId;
   isSidebarOpen.value = false;
+  if (window.location.pathname !== `/${tabId}`) {
+    window.history.pushState({}, '', `/${tabId}`);
+  }
 };
 
 const fetchLicenseStatus = async () => {
@@ -225,6 +202,14 @@ const handleResize = () => {
 onMounted(() => {
   window.addEventListener('resize', handleResize);
   if (isAuthenticated.value) fetchLicenseStatus();
+
+  // Listen for browser back/forward buttons (History API routing)
+  window.addEventListener('popstate', () => {
+    const path = window.location.pathname.substring(1) || 'dashboard';
+    if (tabs.some(t => t.id === path)) {
+      currentTab.value = path;
+    }
+  });
 });
 
 onUnmounted(() => {
@@ -249,7 +234,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.55;
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
