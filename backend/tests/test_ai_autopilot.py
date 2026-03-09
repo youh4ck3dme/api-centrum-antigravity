@@ -22,20 +22,26 @@ MOCK_AUDIT_RESPONSE = {
     ]
 }
 
-@pytest.fixture
-def mock_user():
-    with patch("app.deps.get_current_user", return_value={"id": 1, "is_unlimited": True}):
-        yield
+from app.deps import get_current_user
+
+@pytest.fixture(autouse=True)
+def mock_user_override():
+    def override_user():
+        return {"id": 1, "email": "test@example.com", "is_unlimited": True}
+    
+    app.dependency_overrides[get_current_user] = override_user
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
 
 @pytest.mark.asyncio
-async def test_ai_audit_endpoint(mock_user):
+async def test_ai_audit_endpoint():
     """Test the AI audit endpoint with mocked OpenAI call."""
     with patch("app.ai_service.AIService.generate_dns_audit", new_callable=AsyncMock) as mock_audit:
         mock_audit.return_value = MOCK_AUDIT_RESPONSE
         
         # We need a domain that might be in the snapshot or we mock the snapshot
         with patch("app.ai_routes.dns_snapshot", {"test.com": []}):
-            response = client.post("/api/ai/audit/test.com", headers={"Authorization": "Bearer mock_token"})
+            response = client.post("/api/ai/audit/test.com")
             
             assert response.status_code == 200
             data = response.json()
@@ -43,7 +49,7 @@ async def test_ai_audit_endpoint(mock_user):
             assert "Missing DMARC" in data["issues"]
 
 @pytest.mark.asyncio
-async def test_ai_chat_endpoint(mock_user):
+async def test_ai_chat_endpoint():
     """Test the AI chat endpoint."""
     with patch("app.ai_service.AIService.dns_chat", new_callable=AsyncMock) as mock_chat:
         mock_chat.return_value = "I recommend checking your SPF record."
@@ -60,7 +66,7 @@ async def test_ai_chat_endpoint(mock_user):
         assert response.json()["response"] == "I recommend checking your SPF record."
 
 @pytest.mark.asyncio
-async def test_apply_fix_endpoint(mock_user):
+async def test_apply_fix_endpoint():
     """Test applying a fix (Websupport call)."""
     with patch("app.websupport.WebsupportService.create_dns_record") as mock_ws:
         mock_ws.return_value = {"status": "success", "id": 12345}

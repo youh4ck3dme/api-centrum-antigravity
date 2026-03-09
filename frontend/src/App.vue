@@ -64,9 +64,10 @@
         </div>
 
         <div class="navbar-footer">
-          <LicenseStatus 
-            :is-unlimited="isUnlimited" 
-            @open-modal="isModalOpen = true" 
+          <LicenseStatus
+            :is-unlimited="isUnlimited"
+            :compact="isDesktop"
+            @open-modal="isModalOpen = true"
           />
           <div class="user-profile">
             <div class="avatar">JD</div>
@@ -237,6 +238,7 @@ onUnmounted(() => {
 :root {
   --sidebar-width: 260px;
   --navbar-height: 64px;
+  --navbar-float-height: 230px;
 }
 
 body {
@@ -247,7 +249,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "ss01" 1;
+  font-optical-sizing: auto;
 }
+
+h1, h2, h3, h4 {
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+button { letter-spacing: -0.005em; }
 
 .app-root {
   min-height: 100vh;
@@ -298,6 +314,15 @@ body {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 24px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02);
+  max-height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+/* Narrow desktop: stack tab groups vertically */
+@media (min-width: 1024px) and (max-width: 1280px) {
+  .navbar.is-centered .nav-tabs-column { flex-direction: column; gap: 0.5rem; }
+  .navbar.is-centered .nav-tabs-wrapper { flex-direction: column; align-items: flex-start; }
+  .navbar.is-centered .nav-tabs-label { padding-left: 0.25rem; }
 }
 
 .navbar-inner {
@@ -392,7 +417,7 @@ body {
 }
 @media (min-width: 1024px) {
   .app-root { padding-left: 0; }
-  .app-main { padding-top: 5rem; } /* Room for floating header */
+  .app-main { padding-top: calc(var(--navbar-float-height) + 1.5rem); } /* Room for floating navbar */
 }
 
 .content-container {

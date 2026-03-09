@@ -110,6 +110,9 @@ app.include_router(vps_router, prefix="/api")
 app.include_router(radar_router, prefix="/api")
 app.include_router(dns_monitor_router, prefix="/api")
 app.include_router(provision_router, prefix="/api")
+app.include_router(license_router, prefix="/api")
+app.include_router(ai_router, prefix="/api")
+
 import os
 from pathlib import Path
 
@@ -126,8 +129,7 @@ if FRONTEND_PUBLIC.exists():
 else:
     print(f"Warning: Frontend public directory not found at {FRONTEND_PUBLIC}")
 
-app.include_router(license_router, prefix="/api")
-app.include_router(ai_router, prefix="/api")
+# All routers already included above
 
 @app.on_event("startup")
 async def startup_event():

@@ -1,7 +1,15 @@
 <template>
-  <div class="license-status" :class="{ 'is-unlimited': isUnlimited }">
+  <!-- Compact pill for desktop centered navbar -->
+  <div v-if="compact" class="license-compact" :class="{ 'is-unlimited': isUnlimited }">
+    <span class="compact-icon">{{ isUnlimited ? '👑' : '🛡️' }}</span>
+    <span class="compact-text">{{ isUnlimited ? 'PRO' : 'FREE' }}</span>
+    <button v-if="!isUnlimited" @click="$emit('open-modal')" class="compact-upgrade">Upgrade</button>
+  </div>
+
+  <!-- Full card for sidebar -->
+  <div v-else class="license-status" :class="{ 'is-unlimited': isUnlimited }">
     <div class="label">{{ isUnlimited ? 'Plán' : 'Tvoj paušál' }}</div>
-    
+
     <div class="badge">
       <div class="badge-content">
         <span class="badge-icon">{{ isUnlimited ? '👑' : '🛡️' }}</span>
@@ -19,7 +27,8 @@
 
 <script setup>
 defineProps({
-  isUnlimited: Boolean
+  isUnlimited: Boolean,
+  compact: Boolean
 });
 defineEmits(['open-modal']);
 </script>
@@ -133,4 +142,41 @@ defineEmits(['open-modal']);
 @media (max-width: 1023px) {
   .license-status { margin: 1rem; }
 }
+
+/* ── Compact pill (desktop navbar) ── */
+.license-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 50px;
+  transition: all 0.2s;
+}
+.license-compact.is-unlimited {
+  background: rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.2);
+}
+.compact-icon { font-size: 0.8rem; }
+.compact-text {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.04em;
+}
+.license-compact.is-unlimited .compact-text { color: #a5b4fc; }
+
+.compact-upgrade {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.compact-upgrade:hover { filter: brightness(1.15); transform: scale(1.05); }
 </style>

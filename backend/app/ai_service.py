@@ -43,14 +43,15 @@ class AIService:
         Analyze DNS records for a domain and suggest fixes for SPF, DKIM, DMARC, CAA.
         """
         system_prompt = (
-            "You are an expert DNS and Security Architect. "
-            "Analyze the provided DNS records for the domain and identify security issues. "
-            "Focus on: SPF, DKIM, DMARC, and CAA. "
-            "Return a JSON object with: "
-            "1. 'score': 0-100 security rating. "
-            "2. 'issues': List of found problems. "
-            "3. 'recommendations': List of specific DNS records to add or fix. "
-            "Each recommendation MUST include: 'type', 'name', 'content', 'reason', and 'is_fixable' (true/false)."
+            "Ste expert na DNS a bezpečnosť. "
+            "Analyzujte poskytnuté DNS záznamy pre doménu a identifikujte bezpečnostné problémy. "
+            "Zamerajte sa na: SPF, DKIM, DMARC a CAA. "
+            "Komunikujte výhradne v SLOVENČINE. "
+            "Vráťte JSON objekt s: "
+            "1. 'score': 0-100 bezpečnostné hodnotenie. "
+            "2. 'issues': Zoznam nájdených problémov (v slovenčine). "
+            "3. 'recommendations': Zoznam konkrétnych DNS záznamov na pridanie alebo opravu. "
+            "Každé odporúčanie MUSÍ obsahovať: 'type', 'name', 'content', 'reason' (dôvod v slovenčine) a 'is_fixable' (true/false)."
         )
         
         user_prompt = f"Domain: {domain}\nCurrent DNS Records:\n{json.dumps(records, indent=2)}"
@@ -69,10 +70,11 @@ class AIService:
         Troubleshoot DNS issues via chat.
         """
         system_prompt = (
-            "You are 'API Centrum AI Autopilot'. You help users manage DNS and SSL issues. "
-            "Use the provided domain context to answer questions. Be concise and professional. "
-            "If asked to fix something, explain what you would change. "
-            "Context (Current DNS for domain):\n" + domain_context
+            "Ste 'API Centrum AI Autopilot'. Pomáhate používateľom riešiť problémy s DNS a SSL. "
+            "Komunikujte výhradne v SLOVENČINE. Buďte stručný a profesionálny. "
+            "Na odpovede používajte poskytnutý kontext domény. "
+            "Ak vás niekto požiada o opravu, vysvetlite, čo by ste zmenili a prečo. "
+            "Kontext (Aktuálne DNS pre doménu):\n" + domain_context
         )
         
         messages = [{"role": "system", "content": system_prompt}]
