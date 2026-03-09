@@ -9,7 +9,9 @@
         <span v-else>✕</span>
       </button>
       <div class="navbar-brand">
-        <div class="brand-icon">🌐</div>
+        <div class="brand-icon">
+          <img src="/pwa-192x192.png" alt="Logo" class="brand-img" />
+        </div>
         <span class="brand-name">API Centrum</span>
       </div>
       <div class="avatar">JD</div>
@@ -19,7 +21,9 @@
     <nav class="navbar" :class="{ 'is-sidebar': !isDesktop, 'is-centered': isDesktop }">
       <div class="navbar-inner">
         <div class="navbar-brand">
-          <div class="brand-icon">🌐</div>
+          <div class="brand-icon">
+            <img src="/pwa-192x192.png" alt="Logo" class="brand-img" />
+          </div>
           <span class="brand-name">API Centrum</span>
         </div>
 
@@ -309,7 +313,9 @@ body {
   background: linear-gradient(135deg, #1e1e1e, #0e0e0e);
   border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
   display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+  overflow: hidden;
 }
+.brand-img { width: 100%; height: 100%; object-fit: cover; }
 .brand-name { font-weight: 700; color: #fff; letter-spacing: -0.02em; }
 
 .nav-area { width: 100%; }
