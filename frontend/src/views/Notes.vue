@@ -141,27 +141,24 @@ const storageUsed = computed(() => {
 .notes-root { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
 @media (max-width: 480px) { .notes-root { padding: 1rem 0.5rem; gap: 1rem; } }
 
-.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
-.page-title  { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; }
-.page-sub    { font-size: 0.85rem; color: #94a3b8; margin: 0.2rem 0 0; }
 @media (max-width: 480px) {
   .page-title { font-size: 1.2rem; }
 }
 
 .btn-new {
   display: flex; align-items: center; gap: 0.4rem;
-  background: rgba(99,102,241,0.25); border: 1px solid rgba(99,102,241,0.4);
-  color: #a5b4fc; padding: 0.5rem 1.1rem; border-radius: 8px;
-  cursor: pointer; font-size: 0.85rem; font-weight: 600;
+  background: rgba(0,255,65,0.25); border: 1px solid rgba(0,255,65,0.4);
+  color: var(--color-accent); padding: 0.5rem 1.1rem; border-radius: var(--r-sm);
+  cursor: pointer; font-size: var(--fs-base); font-weight: 600;
   transition: background 0.2s;
 }
-.btn-new:hover { background: rgba(99,102,241,0.4); }
+.btn-new:hover { background: rgba(0,255,65,0.4); }
 
 .empty-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.75rem; padding: 3rem; color: #64748b; font-size: 0.9rem;
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px;
+  gap: 0.75rem; padding: 3rem; color: var(--color-text-secondary); font-size: var(--fs-base);
+  background: var(--color-glass); border: 1px solid var(--color-glass-border);
+  border-radius: var(--r-lg);
 }
 
 .notes-grid {
@@ -173,10 +170,10 @@ const storageUsed = computed(() => {
 @media (min-width: 641px) and (max-width: 1023px) { .notes-grid { grid-template-columns: repeat(2, 1fr); } }
 
 .note-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
   backdrop-filter: blur(12px);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 1rem 1.1rem;
   display: flex; flex-direction: column; gap: 0.6rem;
   cursor: pointer;
@@ -186,16 +183,16 @@ const storageUsed = computed(() => {
 .note-card:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.07); }
 .note-card.editing {
   background: rgba(255,255,255,0.08);
-  border-color: rgba(99,102,241,0.45);
+  border-color: rgba(0,255,65,0.45);
   cursor: default;
 }
 
 .note-header { display: flex; align-items: center; gap: 0.5rem; }
 .note-title-input {
   flex: 1; background: transparent; border: none; outline: none;
-  color: #f1f5f9; font-size: 0.9rem; font-weight: 600;
+  color: var(--color-text-primary); font-size: 0.9rem; font-weight: 600;
 }
-.note-title-input::placeholder { color: #64748b; }
+.note-title-input::placeholder { color: var(--color-text-secondary); }
 
 .btn-delete {
   background: none; border: none; cursor: pointer;
@@ -204,25 +201,26 @@ const storageUsed = computed(() => {
 .btn-delete:hover { opacity: 1; }
 
 .note-preview {
-  flex: 1; font-size: 0.8rem; color: #94a3b8; line-height: 1.5;
+  flex: 1; font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5;
   white-space: pre-wrap; word-break: break-word;
   overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  line-clamp: 4;
 }
 
 .note-textarea {
-  flex: 1; background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
-  color: #e2e8f0; font-size: 0.82rem; line-height: 1.6;
+  flex: 1; background: var(--color-glass);
+  border: 1px solid var(--color-glass-border); border-radius: var(--r-sm);
+  color: var(--color-text-primary); font-size: 0.82rem; line-height: 1.6;
   padding: 0.6rem 0.75rem; resize: vertical; min-height: 120px;
   font-family: inherit; outline: none;
   transition: border-color 0.2s;
 }
-.note-textarea:focus { border-color: rgba(99,102,241,0.5); }
+.note-textarea:focus { border-color: rgba(0,255,65,0.5); }
 
 .note-footer { display: flex; justify-content: space-between; align-items: center; }
-.note-date  { font-size: 0.7rem; color: #475569; }
-.note-saved { font-size: 0.7rem; color: #4ade80; font-weight: 600; }
+.note-date  { font-size: 0.7rem; color: var(--color-text-secondary); }
+.note-saved { font-size: 0.7rem; color: var(--color-secondary); font-weight: 600; }
 
 .saved-fade-enter-active, .saved-fade-leave-active { transition: opacity 0.3s; }
 .saved-fade-enter-from, .saved-fade-leave-to { opacity: 0; }

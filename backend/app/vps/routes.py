@@ -1,21 +1,36 @@
 """
 VPS Monitor — pings all domains (Websupport API + Forpsi manual list) and checks SSL expiry.
+Plus real-time VPS system metrics via SSH.
 """
 
 import ssl
 import socket
 import requests
+import asyncssh
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 
 from ..websupport import WebsupportService
 from ..metrics import performance_metrics
 from ..config import settings
+from ..auth_neon import get_current_user_or_neon
 
 router = APIRouter(tags=["VPS"])
 
 VPS_IP = "194.182.87.6"
+_SSH_USER = "root"
+_SSH_PASS = "Poklop123#####"
+
+_STATS_CMD = (
+    "LOAD=$(awk '{print $1}' /proc/loadavg) && "
+    "NPROC=$(nproc) && "
+    "MEM=$(free -m | awk 'NR==2{print $3\",\"$2}') && "
+    "DISK=$(df / | awk 'NR==2{print int($3/1024)\",\"int($2/1024)}') && "
+    "DRUN=$(docker ps -q 2>/dev/null | wc -l | tr -d ' ') && "
+    "DTOT=$(docker ps -aq 2>/dev/null | wc -l | tr -d ' ') && "
+    "echo \"$LOAD|$NPROC|$MEM|$DISK|$DRUN|$DTOT\""
+)
 
 
 def get_ssl_expiry_days(hostname: str):
@@ -114,3 +129,34 @@ def vps_status():
         "total": len(domains_data),
         "api_calls_24h": api_calls_24h,
     }
+
+
+@router.get("/vps/stats")
+async def vps_stats(current_user=Depends(get_current_user_or_neon)):
+    """Real-time VPS metrics (CPU / RAM / Disk / Containers) via SSH."""
+    try:
+        async with asyncssh.connect(
+            VPS_IP, username=_SSH_USER, password=_SSH_PASS,
+            known_hosts=None, encoding="utf-8",
+        ) as conn:
+            result = await conn.run(_STATS_CMD, timeout=10)
+            line = result.stdout.strip()
+            parts = line.split("|")
+            load = float(parts[0])
+            nproc = int(parts[1])
+            ram_used, ram_total = [int(x) for x in parts[2].split(",")]
+            disk_used_mb, disk_total_mb = [int(x) for x in parts[3].split(",")]
+            containers_running = int(parts[4])
+            containers_total = int(parts[5])
+            cpu_percent = round(min(100.0, load * 100 / nproc), 1)
+            return {
+                "cpu_percent": cpu_percent,
+                "ram_used_mb": ram_used,
+                "ram_total_mb": ram_total,
+                "disk_used_gb": round(disk_used_mb / 1024, 1),
+                "disk_total_gb": round(disk_total_mb / 1024, 1),
+                "containers_running": containers_running,
+                "containers_total": containers_total,
+            }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"VPS nedostupný: {e}")

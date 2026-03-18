@@ -226,9 +226,9 @@ onMounted(() => {
 }
 
 /* Tailwind-ish color overrides if tailwind isn't active on these classes */
-.text-green-400 { color: #4ade80; }
-.text-orange-400 { color: #fbbf24; }
-.text-red-400 { color: #f87171; }
+.text-green-400 { color: var(--color-secondary); }
+.text-orange-400 { color: var(--color-warning); }
+.text-red-400 { color: var(--color-danger); }
 
 .security-features {
   display: grid;

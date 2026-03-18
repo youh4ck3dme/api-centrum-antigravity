@@ -63,16 +63,16 @@ function handleActivate() {
 .modal-card {
   width: 100%; max-width: 400px;
   background: #121212; border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px; overflow: hidden;
+  border-radius: var(--r-xl); overflow: hidden;
   box-shadow: 0 32px 64px rgba(0,0,0,0.5);
 }
 .modal-header {
   padding: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05);
   display: flex; align-items: center; justify-content: space-between;
 }
-.modal-header h3 { font-size: 1.1rem; color: #f1f5f9; font-weight: 700; }
+.modal-header h3 { font-size: 1.1rem; color: var(--color-text-primary); font-weight: 700; }
 .close-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.1rem; }
-.close-btn:hover { color: #f1f5f9; }
+.close-btn:hover { color: var(--color-text-primary); }
 
 .modal-body { padding: 1.25rem; }
 .modal-desc { font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.25rem; line-height: 1.5; }
@@ -81,20 +81,20 @@ function handleActivate() {
 .input-group label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
 .license-input {
   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 0.75rem; color: #f1f5f9; font-family: monospace; font-size: 1rem;
+  border-radius: var(--r-sm); padding: 0.75rem; color: var(--color-text-primary); font-family: monospace; font-size: 1rem;
   outline: none; transition: border-color 0.2s;
 }
-.license-input:focus { border-color: #6366f1; }
+.license-input:focus { border-color: var(--color-primary-hover); }
 
-.error-msg { margin-top: 1rem; color: #f87171; font-size: 0.8rem; background: rgba(239,68,68,0.1); padding: 0.5rem; border-radius: 6px; }
-.success-msg { margin-top: 1rem; color: #4ade80; font-size: 0.8rem; background: rgba(34,197,94,0.1); padding: 0.5rem; border-radius: 6px; }
+.error-msg { margin-top: 1rem; color: var(--color-danger); font-size: 0.8rem; background: rgba(239,68,68,0.1); padding: 0.5rem; border-radius: var(--r-xs); }
+.success-msg { margin-top: 1rem; color: var(--color-secondary); font-size: 0.8rem; background: rgba(34,197,94,0.1); padding: 0.5rem; border-radius: var(--r-xs); }
 
 .modal-footer { padding: 1.25rem; display: flex; justify-content: flex-end; gap: 0.75rem; background: rgba(255,255,255,0.02); }
 .cancel-btn { background: none; border: none; color: #64748b; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
 .submit-btn {
-  background: #6366f1; color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 10px;
+  background: var(--color-primary-hover); color: white; border: none; padding: 0.6rem 1.25rem; border-radius: var(--r-sm);
   font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: background 0.2s;
 }
-.submit-btn:hover:not(:disabled) { background: #4f46e5; }
+.submit-btn:hover:not(:disabled) { background: var(--color-primary); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

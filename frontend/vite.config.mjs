@@ -1,18 +1,20 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [
     vue(),
+    tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
         name: "API Centrum",
         short_name: "API Centrum",
         description: "API Centrum - Domain & SSL Manager",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
+        theme_color: "#f5f5f7",
+        background_color: "#f5f5f7",
         display: "standalone",
         start_url: "/",
         icons: [
@@ -37,7 +39,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://backend:8000",
+        target: "http://localhost:8000",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, "/api"),

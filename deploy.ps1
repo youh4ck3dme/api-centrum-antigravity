@@ -16,8 +16,8 @@ Write-Host "Transferring bundle to VPS..." -ForegroundColor Cyan
 # Fixing the variable interpolation and ensure using the identity file
 scp -i "$SSH_KEY" "$TAR_FILE" "root@${VPS_IP}:/root/"
 
-Write-Host "Extracting and starting services on VPS..." -ForegroundColor Cyan
-ssh -i "$SSH_KEY" "root@${VPS_IP}" "mkdir -p $REMOTE_DIR && tar -xzf /root/$TAR_FILE -C $REMOTE_DIR && cd $REMOTE_DIR && docker compose up -d --build"
+# Extracting and starting services on VPS
+ssh -i "$SSH_KEY" "root@${VPS_IP}" "mkdir -p $REMOTE_DIR && tar -xzf /root/$TAR_FILE -C $REMOTE_DIR && cd $REMOTE_DIR && ./scripts/deploy_vps.sh"
 
 Write-Host "Cleaning up local bundle..." -ForegroundColor Cyan
 Remove-Item $TAR_FILE

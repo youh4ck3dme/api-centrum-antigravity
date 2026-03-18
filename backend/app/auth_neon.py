@@ -89,12 +89,9 @@ def get_current_user_or_neon(
     if is_neon_trial_active():
         try:
             return get_neon_auth_user(credentials, db)
-        except HTTPException as e:
-            # If Neon Auth fails, try local auth
-            if e.status_code == 401 or e.status_code == 503:
-                pass  # Continue to local auth
-            else:
-                raise
+        except Exception:
+            # If Neon Auth fails for ANY reason, try local auth
+            pass
     
     # Fall back to local JWT authentication
     from .auth import decode_access_token

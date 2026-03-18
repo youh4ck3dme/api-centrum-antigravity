@@ -1,179 +1,24 @@
-<template>
-  <div class="dns-root">
-
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">
-          <span class="live-dot" :class="wsStatus"></span>
-          Live DNS Monitor
-        </h2>
-        <p class="page-sub">{{ statusLabel }} · {{ domainCount }} domén monitorovaných</p>
-      </div>
-      <button class="btn-provision" @click="showProvision = true">🖥️ Nový server</button>
-    </div>
-
-    <!-- Provision Modal -->
-    <div v-if="showProvision" class="modal-overlay" @click.self="showProvision = false">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">🚀 One-Click VPS Provisioning</h3>
-          <button class="modal-close" @click="showProvision = false">✕</button>
-        </div>
-        <div class="modal-body">
-          <label class="field-label">Názov servera</label>
-          <input v-model="prov.name" class="field-input" placeholder="napr. production-01" />
-          <label class="field-label">Provider</label>
-          <select v-model="prov.provider" class="field-input">
-            <option value="hetzner">Hetzner</option>
-            <option value="digitalocean">DigitalOcean</option>
-          </select>
-          <label class="field-label">Región</label>
-          <input v-model="prov.region" class="field-input" placeholder="napr. nbg1 alebo fra1" />
-          <label class="field-label">Doména pre A záznam</label>
-          <input v-model="prov.domain" class="field-input" placeholder="napr. app.example.com" />
-          <div v-if="provStatus" class="prov-status" :class="provStatusClass">
-            {{ provStatus }}
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="showProvision = false">Zrušiť</button>
-          <button class="btn-create-vps" @click="startProvision" :disabled="provLoading">
-            {{ provLoading ? 'Vytvára sa...' : 'Vytvoriť' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stat cards -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon">🌐</div>
-        <div class="stat-body">
-          <p class="stat-label">Monitorované domény</p>
-          <p class="stat-value">{{ domainCount }}</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-body">
-          <p class="stat-label">Hrozby dnes</p>
-          <p class="stat-value" :class="threatsToday > 0 ? 'val-red' : 'val-green'">{{ threatsToday }}</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🕐</div>
-        <div class="stat-body">
-          <p class="stat-label">Posledný scan</p>
-          <p class="stat-value stat-small">{{ lastScanLabel }}</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📡</div>
-        <div class="stat-body">
-          <p class="stat-label">Udalosti v logu</p>
-          <p class="stat-value">{{ feed.length }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- AI Audit Panel (Floating / Conditional) -->
-    <div v-if="aiAuditResult" class="panel ai-panel">
-      <div class="panel-header ai-header">
-        <div class="ai-title-wrap">
-          <span class="ai-sparkle">✨</span>
-          <span class="panel-title">AI Autopilot Odporúčania — {{ auditedDomain }}</span>
-        </div>
-        <button @click="aiAuditResult = null" class="btn-clear text-white">Zavrieť</button>
-      </div>
-      <div class="ai-body">
-        <div class="ai-score-card">
-          <div class="score-circle" :style="{ borderColor: scoreColor(aiAuditResult.score) }">
-            <span class="score-num">{{ aiAuditResult.score }}</span>
-            <span class="score-label">Bezpečnosť</span>
-          </div>
-          <div class="score-info">
-            <p v-for="(issue, i) in aiAuditResult.issues" :key="i" class="ai-issue">
-              🔴 {{ issue }}
-            </p>
-          </div>
-        </div>
-
-        <div class="recommendations-list">
-          <div v-for="(rec, i) in aiAuditResult.recommendations" :key="i" class="rec-card">
-            <div class="rec-header">
-              <span class="rec-type">{{ rec.type }}</span>
-              <span class="rec-status" v-if="rec.is_fixable">🔧 Opraviteľné</span>
-            </div>
-            <p class="rec-msg">{{ rec.reason }}</p>
-            <div class="rec-content-box">
-              <code>{{ rec.name }} IN {{ rec.type }} {{ rec.content }}</code>
-            </div>
-            <button 
-              v-if="rec.is_fixable" 
-              @click="applyAiFix(rec)" 
-              class="btn-apply-fix"
-              :disabled="fixingIndex === i"
-            >
-              {{ fixingIndex === i ? 'Aplikujem...' : 'Aplikovať opravu' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Live feed -->
-    <div class="panel">
-      <div class="panel-header">
-        <div style="display:flex;align-items:center;gap:0.6rem">
-          <span class="live-indicator" :class="wsStatus === 'connected' ? 'pulse' : ''">●</span>
-          <span class="panel-title">Live Feed</span>
-        </div>
-        <div class="header-actions">
-          <button @click="startGlobalAudit" class="btn-ai-audit" :disabled="auditLoading">
-            {{ auditLoading ? 'AI Analyzuje...' : '✨ AI Security Audit' }}
-          </button>
-          <button @click="feed = []" class="btn-clear">Vymazať</button>
-        </div>
-      </div>
-
-      <div v-if="feed.length === 0" class="empty-feed">
-        <span>Čakám na udalosti... (scan každých 60s)</span>
-      </div>
-
-      <div v-else class="feed-list">
-        <div
-          v-for="(item, i) in feed"
-          :key="i"
-          class="feed-item"
-          :class="feedClass(item)"
-        >
-          <span class="feed-time">{{ formatTime(item.timestamp) }}</span>
-          <span class="feed-sev" v-if="item.severity" :style="{ color: sevColor(item.severity) }">
-            {{ item.severity }}
-          </span>
-          <span class="feed-sev feed-hb" v-else-if="item.type === 'heartbeat'">HEARTBEAT</span>
-          <span class="feed-sev feed-snap" v-else-if="item.type === 'snapshot'">SNAPSHOT</span>
-          <div class="feed-body">
-            <span class="feed-domain" v-if="item.domain">{{ item.domain }}</span>
-            <span class="feed-msg">{{ feedMessage(item) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import api from '../api/api';
 import useWebSocket from '../composables/useWebSocket';
+
+// Sub-components
+import MonitorStats from '../components/dns/MonitorStats.vue';
+import ProvisionModal from '../components/dns/ProvisionModal.vue';
+import AiAuditPanel from '../components/dns/AiAuditPanel.vue';
+import LiveFeed from '../components/dns/LiveFeed.vue';
 
 const feed = ref([]);
 const wsStatus = ref('disconnected');
 const domainCount = ref(0);
 const threatsToday = ref(0);
 const lastScan = ref(0);
+const auditLoading = ref(false);
+const aiAuditResult = ref(null);
+const auditedDomain = ref('');
+const fixingIndex = ref(-1);
+const showProvision = ref(false);
 
 const token = localStorage.getItem('access_token');
 const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -206,10 +51,10 @@ onMounted(connect);
 onBeforeUnmount(disconnect);
 
 const statusLabel = computed(() => ({
-  connected: 'Pripojený',
-  connecting: 'Pripájam...',
-  disconnected: 'Odpojený',
-}[wsStatus.value] ?? 'Odpojený'));
+  connected: 'Systém v poriadku',
+  connecting: 'Pripájam k sieti...',
+  disconnected: 'Odpojený od Matrixu',
+}[wsStatus.value] ?? 'Mimo prevádzky'));
 
 const lastScanLabel = computed(() => {
   if (!lastScan.value) return 'čakám...';
@@ -220,107 +65,8 @@ const lastScanLabel = computed(() => {
   return `pred ${Math.floor(diff / 3600)}h`;
 });
 
-const formatTime = (ts) => ts
-  ? new Date(ts * 1000).toLocaleTimeString('sk-SK')
-  : '';
-
-const sevColor = (s) => ({
-  CRITICAL: '#f87171',
-  HIGH: '#fb923c',
-  MEDIUM: '#facc15',
-}[s] ?? '#94a3b8');
-
-const feedClass = (item) => {
-  if (item.severity === 'CRITICAL') return 'item-critical';
-  if (item.severity === 'HIGH') return 'item-high';
-  if (item.severity === 'MEDIUM') return 'item-medium';
-  if (item.type === 'heartbeat') return 'item-hb';
-  return '';
-};
-
-const feedMessage = (item) => {
-  if (item.type === 'heartbeat')
-    return `${item.domains_checked} domén skontrolovaných · ${item.threats_today} hrozieb dnes`;
-  if (item.type === 'snapshot')
-    return `Pripojený · ${item.domain_count} domén · ${item.threats_today} hrozieb dnes`;
-  return item.message ?? '';
-};
-
-// ── VPS Provisioning ─────────────────────────────────────────────────────
-const showProvision = ref(false);
-const provLoading = ref(false);
-const provStatus = ref('');
-const provStatusClass = ref('');
-const prov = ref({ name: '', provider: 'hetzner', region: '', domain: '' });
-
-async function startProvision() {
-  provLoading.value = true;
-  provStatus.value = 'Vytvára sa server...';
-  provStatusClass.value = 'status-info';
-  try {
-    const res = await fetch('/api/dns-monitor/provision', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(prov.value),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Chyba pri vytváraní');
-    provStatus.value = `Job spustený: ${data.job_id}`;
-    provStatusClass.value = 'status-ok';
-    // Poll status
-    pollJobStatus(data.job_id);
-  } catch (e) {
-    provStatus.value = `Chyba: ${e.message}`;
-    provStatusClass.value = 'status-err';
-  } finally {
-    provLoading.value = false;
-  }
-}
-
-async function pollJobStatus(jobId) {
-  let attempts = 0;
-  const poll = setInterval(async () => {
-    attempts++;
-    if (attempts > 60) {
-      clearInterval(poll);
-      provStatus.value = 'Timeout — skontrolujte stav manuálne';
-      provStatusClass.value = 'status-err';
-      return;
-    }
-    try {
-      const res = await fetch(`/api/dns-monitor/provision/${jobId}`);
-      const data = await res.json();
-      provStatus.value = `[${data.progress ?? 0}%] ${data.step ?? 'neznámy krok'}`;
-      if (data.status === 'completed') {
-        clearInterval(poll);
-        provStatus.value = `✅ Server vytvorený! IP: ${data.server_ip ?? 'neznáme'}`;
-        provStatusClass.value = 'status-ok';
-      } else if (data.status === 'failed') {
-        clearInterval(poll);
-        provStatus.value = `❌ Zlyhalo: ${data.error ?? 'neznáma chyba'}`;
-        provStatusClass.value = 'status-err';
-      } else {
-        provStatusClass.value = 'status-info';
-      }
-    } catch {
-      // ignore poll errors
-    }
-  }, 3000);
-}
-// ── AI Autopilot ─────────────────────────────────────────────────────────
-const aiAuditResult = ref(null);
-const auditLoading = ref(false);
-const auditedDomain = ref('');
-const fixingIndex = ref(-1);
-
+// AI Logic
 async function startGlobalAudit() {
-  // Take the first domain from the snap as example for now, or let user pick.
-  // We'll pick the most active/visible one or prompt. 
-  // Let's just find the first domain we have data for.
-  const domains = Object.keys(api.defaults.headers.common); // This is not right, let's use a dynamic way
-  // Actually, we can just get the domains from the feed or a separate fetch.
-  // For now, let's use the first domain name we find in domainCount context.
-  // Better: We'll fetch the domain list first.
   auditLoading.value = true;
   try {
     const listRes = await api.get('/domains'); 
@@ -331,7 +77,8 @@ async function startGlobalAudit() {
     const res = await api.post(`/ai/audit/${firstDomain}`);
     aiAuditResult.value = res.data;
   } catch (err) {
-    alert("AI Audit zlyhal: " + (err.response?.data?.detail || err.message));
+    console.error(err);
+    alert("AI Audit zlyhal.");
   } finally {
     auditLoading.value = false;
   }
@@ -339,260 +86,74 @@ async function startGlobalAudit() {
 
 async function applyAiFix(rec) {
   if (!confirm(`Naozaj chcete pridať tento ${rec.type} záznam pre ${auditedDomain.value}?`)) return;
-  
   const idx = aiAuditResult.value.recommendations.indexOf(rec);
   fixingIndex.value = idx;
-  
   try {
     await api.post('/ai/fix', {
       domain: auditedDomain.value,
-      record: {
-        type: rec.type,
-        name: rec.name,
-        content: rec.content,
-        ttl: 3600
-      }
+      record: { type: rec.type, name: rec.name, content: rec.content, ttl: 3600 }
     });
-    alert("DNS záznam bol úspešne pridaný!");
-    // Remove from list
     aiAuditResult.value.recommendations.splice(idx, 1);
   } catch (err) {
-    alert("Oprava zlyhala: " + (err.response?.data?.detail || err.message));
+    console.error(err);
+    alert("Oprava zlyhala.");
   } finally {
     fixingIndex.value = -1;
   }
 }
-
-const scoreColor = (s) => {
-  if (s > 80) return '#4ade80';
-  if (s > 50) return '#facc15';
-  return '#f87171';
-};
-
-import api from '../api/api';
 </script>
 
-<style scoped>
-.dns-root { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
-@media (max-width: 480px) { .dns-root { padding: 1rem 0.5rem; gap: 1rem; } }
+<template>
+  <div class="dns-orchestrator p-6 lg:p-10 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div class="space-y-1">
+        <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tighter leading-none mb-2">LIVE DNS MONITOR</h1>
+        <div class="flex items-center gap-2">
+           <div class="w-2 h-2 rounded-full" :class="wsStatus === 'connected' ? 'bg-accent-green animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-accent-rose'"></div>
+           <p class="text-white/40 font-bold tracking-widest text-[10px] uppercase">{{ statusLabel }} · {{ domainCount }} aktívnych monitoringov</p>
+        </div>
+      </div>
+      <button 
+        @click="showProvision = true" 
+        class="group relative px-8 py-4 bg-primary-indigo text-white font-black text-xs rounded-2xl shadow-2xl hover:translate-y-[-2px] active:translate-y-[0px] transition-all overflow-hidden flex items-center gap-3 uppercase tracking-widest"
+      >
+        <span class="relative z-10">🖥️ Nový server</span>
+        <div class="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+      </button>
+    </header>
 
-.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
-.page-title  { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; display: flex; align-items: center; gap: 0.6rem; }
-.page-sub    { font-size: 0.85rem; color: #94a3b8; margin: 0.2rem 0 0; }
-@media (max-width: 480px) { .page-title { font-size: 1.2rem; } }
+    <!-- Stat Cards -->
+    <MonitorStats 
+      :domainCount="domainCount"
+      :threatsToday="threatsToday"
+      :lastScanLabel="lastScanLabel"
+      :feedLength="feed.length"
+    />
 
-/* Connection dot */
-.live-dot {
-  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
-  flex-shrink: 0;
-}
-.live-dot.connected    { background: #4ade80; box-shadow: 0 0 6px #4ade80; animation: pulse-dot 2s infinite; }
-.live-dot.connecting   { background: #fb923c; }
-.live-dot.disconnected { background: #f87171; }
-@keyframes pulse-dot {
-  0%   { box-shadow: 0 0 0 0 rgba(74,222,128,.7); }
-  70%  { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
-  100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-}
+    <!-- AI Audit -->
+    <AiAuditPanel 
+      :aiAuditResult="aiAuditResult"
+      :auditedDomain="auditedDomain"
+      :fixingIndex="fixingIndex"
+      @close="aiAuditResult = null"
+      @apply-fix="applyAiFix"
+    />
 
-/* Stats */
-.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-@media (max-width: 1023px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .stats-row { grid-template-columns: 1fr; } }
-.stat-card {
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
-  backdrop-filter: blur(12px); border-radius: 14px; padding: 1rem 1.1rem;
-  display: flex; align-items: center; gap: 0.9rem;
-  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.07);
-}
-.stat-icon  { font-size: 1.6rem; }
-.stat-label { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
-.stat-value { font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0.1rem 0 0; }
-.stat-small { font-size: 0.85rem; }
-.val-red    { color: #f87171; }
-.val-green  { color: #4ade80; }
+    <!-- Main Feed -->
+    <LiveFeed 
+      :feed="feed"
+      :wsStatus="wsStatus"
+      :auditLoading="auditLoading"
+      @clear-feed="feed = []"
+      @global-audit="startGlobalAudit"
+    />
 
-/* Panel */
-.panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; }
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.85rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.panel-title { font-weight: 600; color: #f1f5f9; }
-.btn-clear {
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-  color: #94a3b8; padding: 0.25rem 0.7rem; border-radius: 6px;
-  cursor: pointer; font-size: 0.75rem; transition: background .15s;
-}
-.btn-clear:hover { background: rgba(255,255,255,0.1); }
-
-/* Live indicator */
-.live-indicator { font-size: 0.65rem; color: #64748b; }
-.live-indicator.pulse { color: #4ade80; animation: blink 1.5s ease infinite; }
-@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
-
-/* Empty */
-.empty-feed { padding: 2rem; text-align: center; color: #475569; font-size: 0.85rem; }
-
-/* Feed */
-.feed-list { max-height: 500px; overflow-y: auto; }
-.feed-item {
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  padding: 0.55rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 0.8rem; transition: background .1s;
-}
-.feed-item:hover { background: rgba(255,255,255,0.02); }
-.item-critical { border-left: 3px solid #f87171; }
-.item-high     { border-left: 3px solid #fb923c; }
-.item-medium   { border-left: 3px solid #facc15; }
-.item-hb       { opacity: 0.5; }
-
-.feed-time   { color: #475569; min-width: 70px; font-size: 0.75rem; padding-top: 1px; }
-.feed-sev    { min-width: 82px; font-weight: 700; font-size: 0.72rem; padding-top: 2px; }
-.feed-hb     { color: #4ade80; }
-.feed-snap   { color: #60a5fa; }
-.feed-body   { display: flex; flex-direction: column; gap: 0.1rem; }
-.feed-domain { color: #a5b4fc; font-weight: 600; }
-.feed-msg    { color: #cbd5e1; }
-
-/* Provision button */
-.btn-provision {
-  display: flex; align-items: center; gap: 0.4rem;
-  background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
-  color: #a5b4fc; padding: 0.5rem 1rem; border-radius: 10px;
-  font-size: 0.82rem; font-weight: 600; cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-provision:hover {
-  background: rgba(99,102,241,0.25); transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(99,102,241,0.15);
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem;
-}
-.modal-card {
-  width: 100%; max-width: 440px;
-  background: rgba(20,20,26,0.95); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
-  backdrop-filter: blur(24px);
-}
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.modal-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin: 0; }
-.modal-close {
-  background: none; border: none; color: #64748b; font-size: 1.1rem;
-  cursor: pointer; padding: 0.25rem;
-}
-.modal-close:hover { color: #f1f5f9; }
-.modal-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
-.field-label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
-.field-input {
-  padding: 0.6rem 0.85rem; border-radius: 10px;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-  color: #f1f5f9; font-size: 0.85rem; outline: none;
-  transition: border-color 0.2s;
-}
-.field-input:focus { border-color: rgba(99,102,241,0.5); }
-.field-input option { background: #1e1e2a; }
-.modal-footer {
-  display: flex; justify-content: flex-end; gap: 0.5rem;
-  padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.06);
-}
-.btn-cancel {
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-  color: #94a3b8; padding: 0.5rem 1rem; border-radius: 10px;
-  font-size: 0.82rem; cursor: pointer; transition: background 0.15s;
-}
-.btn-cancel:hover { background: rgba(255,255,255,0.1); }
-.btn-create-vps {
-  background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
-  color: #c7d2fe; padding: 0.5rem 1.25rem; border-radius: 10px;
-  font-size: 0.82rem; font-weight: 600; cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-create-vps:hover:not(:disabled) {
-  background: rgba(99,102,241,0.3); transform: translateY(-1px);
-}
-.btn-create-vps:disabled { opacity: 0.4; cursor: not-allowed; }
-.prov-status {
-  font-size: 0.8rem; padding: 0.6rem 0.85rem; border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-.status-info { background: rgba(99,102,241,0.1); color: #a5b4fc; }
-.status-ok   { background: rgba(74,222,128,0.1); color: #4ade80; }
-.status-err  { background: rgba(248,113,113,0.1); color: #f87171; }
-/* ── AI Autopilot Styles ─────────────────── */
-.ai-panel {
-  background: linear-gradient(135deg, rgba(30, 27, 75, 0.4), rgba(15, 23, 42, 0.4));
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  margin-bottom: 1.5rem;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.05);
-}
-.ai-header { border-bottom: 1px solid rgba(99, 102, 241, 0.15); }
-.ai-title-wrap { display: flex; align-items: center; gap: 0.75rem; }
-.ai-sparkle { font-size: 1.25rem; animation: sparkle 2s infinite; }
-@keyframes sparkle {
-  0%, 100% { opacity: 0.8; transform: scale(1); filter: drop-shadow(0 0 2px #818cf8); }
-  50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px #818cf8); }
-}
-
-.ai-body { padding: 1.5rem; }
-.ai-score-card {
-  display: flex; align-items: center; gap: 2rem;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem;
-}
-
-.score-circle {
-  width: 80px; height: 80px; border-radius: 50%;
-  border: 4px solid #4ade80;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
-}
-.score-num { font-size: 1.5rem; font-weight: 800; color: #fff; line-height: 1; }
-.score-label { font-size: 0.6rem; text-transform: uppercase; opacity: 0.6; }
-
-.ai-issue { font-size: 0.85rem; color: #f87171; margin: 0.25rem 0; font-weight: 500; }
-
-.recommendations-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-.rec-card {
-  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
-}
-.rec-header { display: flex; justify-content: space-between; align-items: center; }
-.rec-type { background: #6366f1; color: white; padding: 0.1rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
-.rec-status { font-size: 0.7rem; color: #4ade80; font-weight: 600; }
-.rec-msg { font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.4; }
-.rec-content-box { background: #000; padding: 0.6rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; color: #4ade80; overflow-x: auto; }
-
-.btn-ai-audit {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  color: #c7d2fe; padding: 0.4rem 0.9rem; border-radius: 8px;
-  font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
-}
-.btn-ai-audit:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
-  border-color: #818cf8; transform: translateY(-1px);
-}
-
-.btn-apply-fix {
-  background: #059669; color: white; border: none; padding: 0.5rem; border-radius: 8px;
-  font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
-}
-.btn-apply-fix:hover:not(:disabled) { background: #047857; }
-.header-actions { display: flex; align-items: center; gap: 0.75rem; }
-</style>
+    <!-- Modals -->
+    <ProvisionModal 
+      :show="showProvision"
+      @close="showProvision = false"
+    />
+  </div>
+</template>

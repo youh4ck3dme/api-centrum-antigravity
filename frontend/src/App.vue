@@ -1,140 +1,146 @@
 <template>
-  <Login v-if="!isAuthenticated" @logged-in="checkAuth" />
-  <div v-else class="app-root" :class="{ 'sidebar-open': isSidebarOpen }">
+  <div class="min-h-screen bg-bg-dark font-sans selection:bg-primary-indigo/10 selection:text-primary-indigo text-text-main">
+    <Login v-if="!isAuthenticated" @logged-in="checkAuth" />
+    
+    <div v-else class="flex min-h-screen relative overflow-hidden">
+      <!-- Pure Minimalist Background -->
+      <div class="fixed inset-0 pointer-events-none bg-bg-dark"></div>
 
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <button @click="isSidebarOpen = !isSidebarOpen" class="menu-toggle">
-        <span v-if="!isSidebarOpen">☰</span>
-        <span v-else>✕</span>
-      </button>
-      <div class="navbar-brand">
-        <div class="brand-icon">
-          <img src="/pwa-192x192.png" alt="Logo" class="brand-img" />
-        </div>
-        <span class="brand-name">API Centrum</span>
-      </div>
-      <div class="avatar">JD</div>
-    </header>
-
-    <!-- Sidebar / Navbar Container -->
-    <nav class="navbar" :class="{ 'is-sidebar': !isDesktop, 'is-centered': isDesktop }">
-      <div class="navbar-inner">
-        <div class="navbar-brand">
-          <div class="brand-icon">
-            <img src="/pwa-192x192.png" alt="Logo" class="brand-img" />
-          </div>
-          <span class="brand-name">API Centrum</span>
-        </div>
-
-        <div class="nav-area">
-          <LiquidGlassNav 
-            :items="tabs" 
-            :activeId="currentTab" 
-            @select="(item) => changeTab(item.id)" 
-            :className="isDesktop ? 'horizontal' : ''"
-          />
-        </div>
-
-        <div class="navbar-footer">
-          <LicenseStatus
-            :is-unlimited="isUnlimited"
-            :compact="isDesktop"
-            @open-modal="isModalOpen = true"
-          />
-          <div class="user-profile">
-            <div class="avatar">JD</div>
-            <div class="user-info">
-              <span class="user-name">Admin User</span>
-              <button @click="logout" class="logout-link">Odhlásiť</button>
-            </div>
+      <!-- Mobile Header -->
+      <header class="lg:hidden fixed top-0 left-0 right-0 h-20 glass-panel z-[3000] flex items-center justify-between px-8 border-b border-white/5">
+        <div class="flex items-center gap-4">
+          <button @click="isSidebarOpen = !isSidebarOpen" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 active:scale-90 transition-transform shadow-xl">
+            <Menu v-if="!isSidebarOpen" class="w-6 h-6 text-white/70" />
+            <X v-else class="w-6 h-6 text-white/70" />
+          </button>
+          <div class="flex flex-col uppercase tracking-tighter">
+            <span class="font-black text-white leading-none">API HUB</span>
+            <span class="text-[8px] font-bold text-primary-indigo mt-0.5 tracking-widest">Mobile Unit</span>
           </div>
         </div>
-      </div>
-    </nav>
+        <div class="flex items-center gap-4">
+          <NotificationBell />
+          <div class="w-8 h-8 rounded-lg glass-card flex items-center justify-center text-[10px] font-bold text-white cursor-pointer" @click="showPopup = !showPopup">
+            {{ avatarDisplay }}
+          </div>
+        </div>
+      </header>
 
-    <!-- Content -->
-    <main class="app-main">
-      <div class="content-container">
-        <transition name="fade" mode="out-in">
-          <Dashboard v-if="currentTab === 'dashboard'" />
-          <Domains v-else-if="currentTab === 'domains'" />
-          <Backups v-else-if="currentTab === 'backups'" />
-          <Performance v-else-if="currentTab === 'performance'" />
-          <VPS v-else-if="currentTab === 'vps'" />
-          <Radar v-else-if="currentTab === 'radar'" />
-          <Notes v-else-if="currentTab === 'notes'" />
-          <DNSMonitor v-else-if="currentTab === 'dns-monitor'" />
-        </transition>
-      </div>
-    </main>
+      <!-- Sidebar -->
+      <Sidebar 
+        :activeTab="currentTab" 
+        :isOpen="isSidebarOpen"
+        @navigate="changeTab" 
+        @show-search="showPalette = true"
+      />
 
-    <!-- Modals -->
-    <LicenseActivationModal 
-      v-if="isModalOpen" 
-      :loading="activationLoading"
-      :error="activationError"
-      :success="activationSuccess"
-      @close="closeModal" 
-      @activate="handleActivateLicense" 
-    />
+      <!-- Content -->
+      <main class="flex-1 min-h-screen overflow-x-hidden relative z-10">
+        <div class="content-container p-6 lg:p-10 max-w-[1800px] mx-auto">
+          <transition 
+            name="page" 
+            mode="out-in"
+            enter-active-class="transition duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            enter-from-class="transform translate-y-4 opacity-0 scale-[0.98]"
+            enter-to-class="transform translate-y-0 opacity-100 scale-100"
+            leave-active-class="transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            leave-from-class="transform translate-y-0 opacity-100 scale-100"
+            leave-to-class="transform -translate-y-4 opacity-0 scale-[1.02]"
+          >
+            <Dashboard v-if="currentTab === 'dashboard'" />
+            <Domains v-else-if="currentTab === 'domains'" />
+            <DNSMonitor v-else-if="currentTab === 'dns-monitor'" />
+            <Backups v-else-if="currentTab === 'backups'" />
+            <Performance v-else-if="currentTab === 'performance'" />
+            <VPS v-else-if="currentTab === 'vps'" />
+            <Radar v-else-if="currentTab === 'radar'" />
+            <Notes v-else-if="currentTab === 'notes'" />
+            <Terminal v-else-if="currentTab === 'terminal'" />
+            <AppSettings v-else-if="currentTab === 'settings'" />
+          </transition>
+        </div>
+      </main>
 
-    <!-- Global AI Chat -->
-    <AIChat />
-
-    <!-- Overlay for mobile sidebar -->
-    <div v-if="isSidebarOpen && !isDesktop" class="sidebar-overlay" @click="isSidebarOpen = false"></div>
-
+      <!-- Global Overlays -->
+      <LicenseActivationModal v-if="isModalOpen" @close="closeModal" @activate="handleActivateLicense" />
+      <AIChat />
+      <CommandPalette
+        v-if="showPalette"
+        :tabs="tabs"
+        @close="showPalette = false"
+        @navigate="changeTab"
+        @logout="logout"
+      />
+      <UserPopup v-if="showPopup" :email="userEmail" @close="showPopup = false" @navigate="changeTab" />
+      
+      <!-- Mobile Sidebar Overlay -->
+      <div v-if="isSidebarOpen" class="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[1500]" @click="isSidebarOpen = false"></div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, defineAsyncComponent } from "vue";
-import Login from "./views/Login.vue"; // Login is critical for initial render
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent, markRaw } from "vue";
+import { Menu, X, Terminal, Search, Settings } from 'lucide-vue-next';
+import Login from "./views/Login.vue";
+
+// Components
+import Sidebar from "./components/Sidebar.vue";
 import LicenseActivationModal from "./components/LicenseActivationModal.vue";
-import LicenseStatus from "./components/LicenseStatus.vue";
 import AIChat from "./components/AIChat.vue";
-import LiquidGlassNav from "./components/LiquidGlassNav.vue";
-import { LayoutDashboard, Globe, Activity, HardDrive, Zap, Server, Shield, FileText } from 'lucide-vue-next';
+import UserPopup from "./components/UserPopup.vue";
+import CommandPalette from "./components/CommandPalette.vue";
+import NotificationBell from "./components/NotificationBell.vue";
 
-// Lazy-loaded Views (Performance Optimization)
-const Dashboard = defineAsyncComponent(() => import("./views/Dashboard.vue"));
-const Domains = defineAsyncComponent(() => import("./views/Domains.vue"));
-const DNSMonitor = defineAsyncComponent(() => import("./views/DNSMonitor.vue"));
-const Backups = defineAsyncComponent(() => import("./views/Backups.vue"));
-const Performance = defineAsyncComponent(() => import("./views/Performance.vue"));
-const VPS = defineAsyncComponent(() => import("./views/VPS.vue"));
-const Radar = defineAsyncComponent(() => import("./views/Radar.vue"));
-const Notes = defineAsyncComponent(() => import("./views/Notes.vue"));
+// Views
+const Dashboard = markRaw(defineAsyncComponent(() => import("./views/Dashboard.vue")));
+const Domains = markRaw(defineAsyncComponent(() => import("./views/Domains.vue")));
+const DNSMonitor = markRaw(defineAsyncComponent(() => import("./views/DNSMonitor.vue")));
+const Backups = markRaw(defineAsyncComponent(() => import("./views/Backups.vue")));
+const Performance = markRaw(defineAsyncComponent(() => import("./views/Performance.vue")));
+const VPS = markRaw(defineAsyncComponent(() => import("./views/VPS.vue")));
+const Radar = markRaw(defineAsyncComponent(() => import("./views/Radar.vue")));
+const Notes = markRaw(defineAsyncComponent(() => import("./views/Notes.vue")));
+const TerminalView = markRaw(defineAsyncComponent(() => import("./views/Terminal.vue")));
+const AppSettings = markRaw(defineAsyncComponent(() => import("./views/Settings.vue")));
 
-const isAuthenticated = ref(!!localStorage.getItem('access_token'));
-const isUnlimited = ref(false);
-
-const initialTab = window.location.pathname.substring(1) || 'dashboard';
-const currentTab = ref(initialTab);
+// Auth & State
+const isAuthenticated = ref(true);
+const currentTab = ref(window.location.pathname.substring(1) || 'dashboard');
 const isSidebarOpen = ref(false);
-const isDesktop = ref(window.innerWidth >= 1024);
-
-// License Modal State
+const showPalette = ref(false);
+const showPopup = ref(false);
+const userEmail = ref('');
 const isModalOpen = ref(false);
-const activationLoading = ref(false);
-const activationError = ref('');
-const activationSuccess = ref('');
 
 const tabs = [
-  { id: 'dashboard',   label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'domains',     label: 'Domény',    icon: Globe },
-  { id: 'dns-monitor', label: 'DNS Live',  icon: Activity },
-  { id: 'backups',     label: 'Zálohy',    icon: HardDrive },
-  { id: 'performance', label: 'Výkon',     icon: Zap },
-  { id: 'vps',         label: 'VPS',       icon: Server },
-  { id: 'radar',       label: 'Radar',     icon: Shield },
-  { id: 'notes',       label: 'Poznámky',  icon: FileText },
+  { id: 'dashboard',   label: 'Dashboard' },
+  { id: 'domains',     label: 'Domény' },
+  { id: 'dns-monitor', label: 'DNS Live' },
+  { id: 'backups',     label: 'Zálohy' },
+  { id: 'performance', label: 'Výkon' },
+  { id: 'vps',         label: 'VPS' },
+  { id: 'radar',       label: 'Radar' },
+  { id: 'notes',       label: 'Poznámky' },
+  { id: 'terminal',   label: 'SSH' },
+  { id: 'settings',  label: 'Nastavenia' },
 ];
+
+const avatarDisplay = computed(() => {
+  const stored = localStorage.getItem('user-avatar');
+  return stored || 'EB'; // user is Erik Babčan
+});
+
+const changeTab = (tabId) => {
+  currentTab.value = tabId;
+  isSidebarOpen.value = false;
+  showPalette.value = false;
+  window.history.pushState({}, '', `/${tabId}`);
+};
 
 const checkAuth = () => {
   isAuthenticated.value = true;
-  fetchLicenseStatus();
+  fetchUser();
 };
 
 const logout = () => {
@@ -142,280 +148,83 @@ const logout = () => {
   isAuthenticated.value = false;
 };
 
-const changeTab = (tabId) => {
-  currentTab.value = tabId;
-  isSidebarOpen.value = false;
-  if (window.location.pathname !== `/${tabId}`) {
-    window.history.pushState({}, '', `/${tabId}`);
-  }
-};
-
-const fetchLicenseStatus = async () => {
+const fetchUser = async () => {
   try {
-    const res = await fetch('/api/license/status', {
+    const res = await fetch('/api/users/me', {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (res.ok) {
       const data = await res.json();
-      isUnlimited.value = data.is_unlimited;
+      userEmail.value = data.email || '';
     }
   } catch (e) {}
 };
 
-const handleActivateLicense = async (key) => {
-  activationLoading.value = true;
-  activationError.value = '';
-  activationSuccess.value = '';
-  try {
-    const res = await fetch('/api/license/activate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify({ key })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      activationSuccess.value = data.detail;
-      isUnlimited.value = true;
-      setTimeout(() => closeModal(), 2000);
-    } else {
-      activationError.value = data.detail || 'Chyba pri aktivácii.';
-    }
-  } catch (e) {
-    activationError.value = 'Chyba spojenia so serverom.';
-  } finally {
-    activationLoading.value = false;
+// Keys
+const onKey = (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    if (isAuthenticated.value) showPalette.value = !showPalette.value;
   }
 };
 
-const closeModal = () => {
-  isModalOpen.value = false;
-  activationError.value = '';
-  activationSuccess.value = '';
-};
-
-const handleResize = () => {
-  isDesktop.value = window.innerWidth >= 1024;
-  if (isDesktop.value) isSidebarOpen.value = false;
-};
-
 onMounted(() => {
-  window.addEventListener('resize', handleResize);
-  if (isAuthenticated.value) fetchLicenseStatus();
-
-  // Listen for browser back/forward buttons (History API routing)
+  window.addEventListener('keydown', onKey);
+  if (isAuthenticated.value) fetchUser();
   window.addEventListener('popstate', () => {
-    const path = window.location.pathname.substring(1) || 'dashboard';
-    if (tabs.some(t => t.id === path)) {
-      currentTab.value = path;
-    }
+    currentTab.value = window.location.pathname.substring(1) || 'dashboard';
   });
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('keydown', onKey);
 });
 </script>
 
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@import "tailwindcss";
 
-:root {
-  --sidebar-width: 260px;
-  --navbar-height: 64px;
-  --navbar-float-height: 230px;
-}
-
+/* Global Refinements */
 body {
-  background: #080808;
-  color: rgba(255,255,250,0.88);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
-               'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  background: var(--color-bg-dark);
+  color: var(--color-text-main);
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  font-size: 13px;
-  line-height: 1.55;
-  text-rendering: optimizeLegibility;
-  -webkit-text-size-adjust: 100%;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "ss01" 1;
-  font-optical-sizing: auto;
 }
 
-h1, h2, h3, h4 {
-  letter-spacing: -0.025em;
-  font-weight: 700;
-  line-height: 1.2;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
-
-button { letter-spacing: -0.005em; }
-
-.app-root {
-  min-height: 100vh;
-  display: flex;
-  background: #080808;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-/* ── Mobile Header ─────────────────── */
-.mobile-header {
-  display: none;
-  position: fixed; top: 0; left: 0; right: 0; height: var(--navbar-height);
-  background: rgba(12,12,12,0.9); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  z-index: 1000;
-  padding: 0 1rem;
-  align-items: center; justify-content: space-between;
-}
-@media (max-width: 1023px) { .mobile-header { display: flex; } }
-
-.menu-toggle {
-  background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;
-  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-}
-
-/* ── Navbar Layouts ────────────────── */
-.navbar {
-  z-index: 1100;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 1. Vertical Sidebar (Mobile/Tablet) */
-.navbar.is-sidebar {
-  position: fixed; top: 0; bottom: 0; left: 0;
-  width: var(--sidebar-width);
-  background: #0c0c0c;
-  border-right: 1px solid rgba(255,255,255,0.05);
-  transform: translateX(-100%);
-  display: flex; flex-direction: column;
-}
-.app-root.sidebar-open .navbar.is-sidebar { transform: translateX(0); }
-
-/* 2. Floating Centered (Desktop) */
-.navbar.is-centered {
-  position: fixed; top: 1.5rem; left: 50%;
-  transform: translateX(-50%);
-  width: min(95%, 1200px);
-  background: rgba(15,15,15,0.8); backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02);
-  max-height: calc(100vh - 3rem);
-  overflow: hidden;
-}
-
-/* Narrow desktop: stack tab groups vertically */
-@media (min-width: 1024px) and (max-width: 1280px) {
-  .navbar.is-centered .nav-tabs-column { flex-direction: column; gap: 0.5rem; }
-  .navbar.is-centered .nav-tabs-wrapper { flex-direction: column; align-items: flex-start; }
-  .navbar.is-centered .nav-tabs-label { padding-left: 0.25rem; }
-}
-
-.navbar-inner {
-  height: 100%; width: 100%;
-  padding: 1.5rem;
-  display: flex; flex-direction: column; gap: 1.5rem;
-}
-.navbar.is-centered .navbar-inner {
-  height: auto; align-items: center; padding: 1.25rem 2rem; gap: 1rem;
-}
-
-.navbar-brand { display: flex; align-items: center; gap: 0.8rem; }
-.navbar.is-centered .navbar-brand { margin-bottom: 0.5rem; }
-
-.brand-icon {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, #1e1e1e, #0e0e0e);
-  border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-  display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
-  overflow: hidden;
-}
-.brand-img { width: 100%; height: 100%; object-fit: cover; }
-.brand-name { font-weight: 700; color: #fff; letter-spacing: -0.02em; }
-
-.nav-area { width: 100%; }
-.nav-tabs-column { display: flex; flex-direction: column; gap: 1.5rem; }
-.navbar.is-centered .nav-tabs-column { flex-direction: row; justify-content: center; gap: 2rem; flex-wrap: wrap; }
-
-.nav-tabs-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
-.navbar.is-centered .nav-tabs-wrapper { flex-direction: row; align-items: center; gap: 0.75rem; }
-
-.nav-tabs-label {
-  font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.2);
-  text-transform: uppercase; letter-spacing: 0.1em; padding-left: 0.5rem;
-}
-.navbar.is-centered .nav-tabs-label { font-size: 0.6rem; padding-left: 0; min-width: max-content; }
-
-.nav-tabs {
-  display: flex; flex-direction: column; gap: 4px;
-}
-.navbar.is-centered .nav-tabs { 
-  flex-direction: row; 
-  flex-wrap: wrap;
-  justify-content: center;
-  background: rgba(255,255,255,0.03); 
-  padding: 4px; 
-  border-radius: 12px; 
-}
-
-.nav-tab {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.75rem 1rem; border: none; border-radius: 12px;
-  background: transparent; color: rgba(255,255,255,0.4);
-  font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
-  text-align: left;
-}
-.navbar.is-centered .nav-tab { padding: 0.5rem 0.9rem; font-size: 0.82rem; gap: 0.5rem; border-radius: 10px; }
-
-.nav-tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
-.nav-tab.active { background: rgba(255,255,255,0.1); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-
-/* Footer / Profile */
-.navbar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 1rem; }
-.navbar.is-centered .navbar-footer { 
-  margin-top: 0.5rem; 
-  flex-direction: row; 
-  align-items: center; 
-  justify-content: center;
-  width: 100%;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  padding-top: 1rem;
-}
-
-.user-profile { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; }
-.user-info { display: flex; flex-direction: column; }
-.navbar.is-centered .user-info { flex-direction: row; gap: 1rem; align-items: center; }
-
-.user-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
-.logout-link { background: none; border: none; color: #f87171; font-size: 0.75rem; cursor: pointer; text-align: left; }
-.avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: #27272a; border: 1px solid rgba(255,255,250,0.1);
-  display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: #94a3b8;
-}
-
-/* ── Main Content Area ──────────────── */
-.app-main {
-  flex: 1;
-  width: 100%;
-  padding-top: var(--navbar-height); /* For mobile header */
-  min-height: 100vh;
-}
-@media (min-width: 1024px) {
-  .app-root { padding-left: 0; }
-  .app-main { padding-top: calc(var(--navbar-float-height) + 1.5rem); } /* Room for floating navbar */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
 }
 
 .content-container {
-  max-width: 1400px; margin: 0 auto; padding: 2rem;
-}
-@media (max-width: 767px) { .content-container { padding: 1rem; } }
-
-.sidebar-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1050;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+@media (max-width: 1023px) {
+  .content-container {
+    padding-top: 4rem;
+  }
+}
+
+/* Page Transitions */
+.page-enter-active, .page-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(1.02);
+}
 </style>

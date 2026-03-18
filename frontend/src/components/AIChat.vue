@@ -2,18 +2,18 @@
   <div class="ai-chat-container" :class="{ 'is-open': isOpen }">
     <!-- Floating Toggle Button -->
     <button @click="isOpen = !isOpen" class="chat-toggle" :class="{ 'has-unread': hasUnread }">
-      <span v-if="!isOpen" class="toggle-icon">🤖</span>
+      <GKIcon v-if="!isOpen" :size="28" />
       <span v-else class="toggle-icon">✕</span>
-      <span class="toggle-label" v-if="!isOpen">AI Autopilot</span>
+      <span class="toggle-label" v-if="!isOpen">General Kukurica</span>
     </button>
 
     <!-- Chat Window -->
     <div v-if="isOpen" class="chat-window">
       <div class="chat-header">
         <div class="header-info">
-          <span class="bot-avatar">🤖</span>
+          <GKIcon :size="30" />
           <div>
-            <h3>DNS Autopilot</h3>
+            <h3>General Kukurica</h3>
             <span class="status-online">Powered by GPT-4o</span>
           </div>
         </div>
@@ -34,10 +34,10 @@
       </div>
 
       <div class="chat-input-area">
-        <input 
-          v-model="userInput" 
+        <input
+          v-model="userInput"
           @keyup.enter="sendMessage"
-          placeholder="Pýtaj sa na DNS..." 
+          placeholder="Pýtaj sa na DNS, VPS, docker..."
           :disabled="isLoading"
         />
         <button @click="sendMessage" :disabled="isLoading || !userInput.trim()" class="send-btn">
@@ -50,8 +50,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, nextTick, watch } from 'vue';
 import api from '../api/api';
+import GKIcon from './GKIcon.vue';
 
 const props = defineProps({
   domain: String // Optional: if provided, context is locked to this domain
@@ -64,7 +65,7 @@ const isLoading = ref(false);
 const messageContainer = ref(null);
 
 const messages = ref([
-  { role: 'assistant', content: 'Ahoj! Som tvoj AI Autopilot. Ako ti môžem pomôcť s tvojimi DNS záznamami?' }
+  { role: 'assistant', content: 'Ahoj! Som General Kukurica. Pýtaj sa na DNS, stav VPS, docker kontajnery alebo SSL.' }
 ]);
 
 const scrollToBottom = async () => {
@@ -84,9 +85,8 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
-    // Collect history (last 5 messages)
     const history = messages.value.slice(-6, -1).map(m => ({ role: m.role, content: m.content }));
-    
+
     const res = await api.post('/ai/chat', {
       query: currentQuery,
       domain: props.domain || 'all',
@@ -115,7 +115,7 @@ watch(isOpen, (newVal) => {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  z-index: 9999; /* Maximal visibility */
+  z-index: 9999;
   font-family: inherit;
 }
 
@@ -125,24 +125,25 @@ watch(isOpen, (newVal) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #002a0f, #001a08);
+  border: 1px solid rgba(0, 255, 65, 0.3);
   border-radius: 50px;
-  color: white;
+  color: var(--color-primary);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 10px 25px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.2), 0 10px 25px rgba(0, 0, 0, 0.6);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   animation: pulse-glow 3s infinite;
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
-  50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.7); transform: scale(1.02); }
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(0, 255, 65, 0.45); transform: scale(1.02); }
 }
 .chat-toggle:hover {
   transform: translateY(-4px) scale(1.05);
-  background: #4f46e5;
+  background: linear-gradient(135deg, #003d15, #002a0f);
+  border-color: rgba(0, 255, 65, 0.5);
 }
 
 .toggle-icon { font-size: 1.25rem; }
@@ -152,16 +153,16 @@ watch(isOpen, (newVal) => {
   position: absolute;
   bottom: 4rem;
   right: 0;
-  width: 305px; /* ~20% smaller than 380px */
-  height: 440px; /* ~20% smaller than 550px */
-  background: rgba(10, 10, 18, 0.88);
+  width: 305px;
+  height: 440px;
+  background: rgba(2, 8, 3, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-radius: 20px;
+  border: 1px solid rgba(0, 255, 65, 0.15);
+  border-radius: var(--r-xl);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 15px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 65, 0.06);
   overflow: hidden;
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: bottom right;
@@ -174,27 +175,26 @@ watch(isOpen, (newVal) => {
 
 .chat-header {
   padding: 0.9rem 1.1rem;
-  background: linear-gradient(to bottom, rgba(99, 102, 241, 0.1), transparent);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: linear-gradient(to bottom, rgba(0, 255, 65, 0.06), transparent);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .header-info { display: flex; align-items: center; gap: 0.6rem; }
-.bot-avatar { font-size: 1.2rem; filter: drop-shadow(0 0 4px #6366f1); }
 .chat-header h3 { margin: 0; font-size: 0.85rem; color: #fff; font-weight: 700; letter-spacing: -0.01em; }
-.status-online { font-size: 0.65rem; color: #a5b4fc; opacity: 0.9; display: flex; align-items: center; gap: 0.3rem; }
-.status-online::before { content: ''; width: 6px; height: 6px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; }
+.status-online { font-size: 0.65rem; color: var(--color-secondary); opacity: 0.9; display: flex; align-items: center; gap: 0.3rem; }
+.status-online::before { content: ''; width: 6px; height: 6px; background: var(--color-secondary); border-radius: 50%; box-shadow: 0 0 5px var(--color-secondary); }
 
-.close-btn { 
-  background: rgba(255, 255, 255, 0.05); border: none; 
+.close-btn {
+  background: rgba(255, 255, 255, 0.05); border: none;
   color: rgba(255, 255, 255, 0.5); width: 24px; height: 24px;
-  border-radius: 50%; cursor: pointer; font-size: 0.75rem; 
+  border-radius: 50%; cursor: pointer; font-size: 0.75rem;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s;
 }
-.close-btn:hover { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+.close-btn:hover { background: rgba(248, 113, 113, 0.2); color: var(--color-danger); }
 
 /* ── Messages ─────────────────── */
 .chat-messages {
@@ -220,17 +220,17 @@ watch(isOpen, (newVal) => {
 .assistant {
   align-self: flex-start;
   background: rgba(30, 30, 46, 0.6);
-  color: #f1f5f9;
+  color: var(--color-text-primary);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom-left-radius: 4px;
 }
 
 .user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, #003d15, #005520);
   color: white;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 12px rgba(0,255,65,0.25);
 }
 
 /* ── Input ────────────────────── */
@@ -253,25 +253,25 @@ watch(isOpen, (newVal) => {
   font-size: 0.82rem;
   transition: border-color 0.2s;
 }
-.chat-input-area input:focus { border-color: rgba(99, 102, 241, 0.5); }
+.chat-input-area input:focus { border-color: rgba(0,255,65,0.5); }
 
 .send-btn {
   width: 34px; height: 34px;
-  background: #6366f1;
+  background: var(--color-primary-hover);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   color: white;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s;
 }
-.send-btn:hover:not(:disabled) { background: #4f46e5; transform: scale(1.05); box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
+.send-btn:hover:not(:disabled) { background: var(--color-primary-active); transform: scale(1.05); box-shadow: 0 0 10px rgba(0,255,65,0.4); }
 .send-btn:disabled { opacity: 0.3; }
 
 /* ── Loading ─────────────────── */
 .typing-indicator { display: flex; gap: 4px; padding: 4px; }
 .typing-indicator span {
-  width: 5px; height: 5px; background: #818cf8;
+  width: 5px; height: 5px; background: var(--color-secondary);
   border-radius: 50%; animation: bounce 1.4s infinite;
 }
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }

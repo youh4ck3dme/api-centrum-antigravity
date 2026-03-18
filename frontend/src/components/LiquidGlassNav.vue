@@ -46,12 +46,12 @@ defineEmits(['select']);
 <style scoped>
 /* Core Glassmorphism Base */
 .liquid-glass-nav {
-  --nav-bg: rgba(20, 20, 22, 0.4);
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --item-bg-active: rgba(255, 255, 255, 0.1);
-  --item-text: rgba(255, 255, 255, 0.5);
-  --item-text-active: rgba(255, 255, 255, 0.95);
-  --item-glow: rgba(99, 102, 241, 0.4);
+  --nav-bg: rgba(4, 4, 4, 0.5);
+  --nav-border: rgba(255, 255, 255, 0.06);
+  --item-bg-active: rgba(0, 255, 65, 0.07);
+  --item-text: rgba(255, 255, 255, 0.4);
+  --item-text-active: var(--color-text-primary);
+  --item-glow: rgba(0, 255, 65, 0.25);
 
   position: relative;
   border-radius: 24px;
@@ -71,7 +71,7 @@ defineEmits(['select']);
   --item-bg-active: rgba(0, 0, 0, 0.05);
   --item-text: rgba(0, 0, 0, 0.5);
   --item-text-active: rgba(0, 0, 0, 0.9);
-  --item-glow: rgba(99, 102, 241, 0.2);
+  --item-glow: rgba(0,255,65,0.2);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
@@ -87,7 +87,7 @@ defineEmits(['select']);
   display: flex;
   align-items: center;
   padding: 0.85rem 1.1rem;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   user-select: none;
@@ -97,7 +97,7 @@ defineEmits(['select']);
 
 .nav-item:hover:not(.is-active) {
   color: var(--item-text-active);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 255, 65, 0.03);
 }
 .liquid-glass-nav.theme-light .nav-item:hover:not(.is-active) {
   background: rgba(0, 0, 0, 0.03);
@@ -111,7 +111,7 @@ defineEmits(['select']);
 .nav-item-bg {
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: var(--item-bg-active);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px var(--item-glow);
   z-index: 0;
@@ -137,11 +137,11 @@ defineEmits(['select']);
 
 .nav-item.is-active .nav-icon {
   transform: scale(1.15);
-  color: #818cf8;
-  filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.4));
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 6px rgba(0, 255, 65, 0.6));
 }
 .liquid-glass-nav.theme-light .nav-item.is-active .nav-icon {
-  color: #4f46e5;
+  color: var(--color-primary-active);
 }
 
 .nav-label {
@@ -156,5 +156,11 @@ defineEmits(['select']);
     flex-direction: row;
     gap: 0.2rem;
   }
+}
+
+/* Narrow desktop: tighter labels */
+@media (min-width: 1024px) and (max-width: 1280px) {
+  .liquid-glass-nav.horizontal .nav-label { font-size: 0.82rem; }
+  .liquid-glass-nav.horizontal .nav-item  { padding: 0.65rem 0.8rem; }
 }
 </style>

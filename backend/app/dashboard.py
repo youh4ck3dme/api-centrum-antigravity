@@ -3,6 +3,7 @@ Dashboard module for API Centrum
 Provides endpoints for dashboard data and statistics
 """
 
+import time as _time
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -14,6 +15,20 @@ from .websupport import WebsupportService
 from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 
+# Simple in-memory TTL cache for slow Websupport API calls
+_cache: dict = {}
+_CACHE_TTL = 300  # 5 minutes
+
+
+def _ws_cached(key: str, fn):
+    now = _time.time()
+    entry = _cache.get(key)
+    if entry and now - entry["ts"] < _CACHE_TTL:
+        return entry["data"]
+    data = fn()
+    _cache[key] = {"data": data, "ts": now}
+    return data
+
 router = APIRouter()
 
 class DashboardStats:
@@ -22,13 +37,21 @@ class DashboardStats:
     
     def get_user_stats(self, user_id: int) -> Dict[str, Any]:
         """Get user-specific statistics"""
-        # Count total domains from Websupport API
+        # Count total domains from Websupport API (cached)
         try:
-            ws_result = WebsupportService.get_domains()
+            ws_result = _ws_cached("domains", WebsupportService.get_domains)
             items = ws_result.get("items", [])
             total_domains = sum(1 for x in items if x.get("serviceName") == "domain")
+            now_ts = _time.time()
+            expiring_soon = sum(
+                1 for x in items
+                if x.get("serviceName") == "domain"
+                and x.get("expireTime")
+                and 0 < x.get("expireTime") - now_ts < 30 * 86400
+            )
         except Exception:
             total_domains = 0
+            expiring_soon = 0
         
         # Count recent activities
         recent_activities = self.db.query(AuditLog).filter(
@@ -41,6 +64,7 @@ class DashboardStats:
         
         return {
             "total_domains": total_domains,
+            "expiring_soon": expiring_soon,
             "recent_activities": recent_activities,
             "last_login": user.created_at if user else None,
             "account_type": "neon_auth" if user and verify_password("neon_auth_temp", user.hashed_password) else "local"
@@ -48,11 +72,10 @@ class DashboardStats:
     
     def get_system_health(self) -> Dict[str, Any]:
         """Get system health status"""
-        # Check Websupport API connectivity
+        # Check Websupport API connectivity (cached)
         websupport_status = "unknown"
         try:
-            # Simple connectivity check
-            WebsupportService.get_user_info()
+            _ws_cached("ws_health", WebsupportService.get_user_info)
             websupport_status = "online"
         except Exception:
             websupport_status = "offline"

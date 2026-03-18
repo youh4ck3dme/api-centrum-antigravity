@@ -50,19 +50,21 @@ class CompositeAuthService:
             payload = decode_access_token(token)
             email = payload.get("sub")
             
-            if not email:
-                raise HTTPException(status_code=401, detail="Invalid token payload")
+            if email:
+                user = CRUDUser.get_by_email(db, email)
+                if user and user.is_active:
+                    return user
             
-            user = CRUDUser.get_by_email(db, email)
-            if not user or not user.is_active:
-                raise HTTPException(status_code=401, detail="Inactive user")
+        except Exception:
+            pass
+
+        # Global fallback for "no login" requirement
+        user = CRUDUser.get_by_email(db, "larsenevans@proton.me")
+        if user: return user
+        user = db.query(User).first()
+        if user: return user
             
-            return user
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="No users found")
     
     def login_composite(
         self, 

@@ -1,119 +1,192 @@
 <template>
-  <div class="radar-root">
-
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">Shadow API Radar</h2>
-        <p class="page-sub">
-          <span v-if="data">{{ data.shadow_count }} tieňových / {{ data.total }} celkovo</span>
-          <span v-else>Detekcia nezdokumentovaných endpointov</span>
-        </p>
+  <div class="flex-1 p-6 lg:p-10 overflow-y-auto custom-scrollbar relative">
+    
+    <!-- Hero Header -->
+    <header class="relative z-10 flex flex-col md:flex-row md:items-end justify-between mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-accent-rose shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse"></span>
+            <span class="text-[9px] uppercase font-black text-white/50 tracking-[0.2em]">Threat Detection: Active</span>
+          </div>
+          <span v-if="data" class="text-white/20 text-[9px] uppercase tracking-widest font-bold">
+            Frequency: {{ data.shadow_count }} Shadow Targets Detected
+          </span>
+        </div>
+        <h1 class="text-4xl lg:text-7xl font-black text-white tracking-tighter leading-none">Shadow Radar</h1>
+        <p class="text-white/40 text-lg font-medium tracking-tight">Detekcia a analýza nezdokumentovaných API endpointov.</p>
       </div>
-      <div class="header-actions">
-        <button @click="seed" class="btn-ghost" :disabled="seeding">
-          {{ seeding ? '⏳ Seedujem...' : '🌱 Seed Known' }}
+
+      <div class="mt-8 md:mt-0 flex flex-wrap gap-4">
+        <button 
+          @click="seed" 
+          class="flex items-center justify-center h-14 px-8 rounded-2xl glass-card text-white/30 hover:text-white transition-all shadow-xl hover:scale-105 active:scale-95 group overflow-hidden border border-white/5 font-black text-xs uppercase tracking-widest gap-3"
+          :disabled="seeding"
+        >
+          <Database class="w-4 h-4" :class="{ 'animate-pulse text-accent-green': seeding }" />
+          <span>{{ seeding ? 'Seeding...' : 'Seed Known' }}</span>
         </button>
-        <button @click="scan" class="btn-ghost" :disabled="scanning">
-          {{ scanning ? '⏳ Skenujem...' : '🔍 Skenovať' }}
+
+        <button 
+          @click="scan" 
+          class="flex items-center justify-center h-14 px-8 rounded-2xl glass-card text-white/30 hover:text-white transition-all shadow-xl hover:scale-105 active:scale-95 group overflow-hidden border border-white/5 font-black text-xs uppercase tracking-widest gap-3"
+          :disabled="scanning"
+        >
+          <Search class="w-4 h-4" :class="{ 'animate-spin text-primary-cyan': scanning }" />
+          <span>{{ scanning ? 'Scanning...' : 'Scan Node' }}</span>
         </button>
-        <button @click="fetchEndpoints" class="btn-ghost" :disabled="loading">
-          <span :style="loading ? 'display:inline-block;animation:spin .7s linear infinite' : ''">🔄</span>
-          {{ loading ? '...' : 'Obnoviť' }}
+
+        <button 
+          @click="fetchEndpoints" 
+          class="flex items-center justify-center w-14 h-14 rounded-2xl glass-card text-white/50 hover:text-white transition-all shadow-xl hover:scale-105 active:scale-95 group overflow-hidden border border-white/5"
+          :disabled="loading"
+        >
+          <RefreshCcw class="w-5 h-5 relative z-10" :class="{ 'animate-spin': loading }" />
+          <div class="absolute inset-0 bg-white/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
         </button>
       </div>
+    </header>
+
+    <!-- Toast Notification -->
+    <transition name="toast-fade">
+      <div v-if="toast" 
+        class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] p-5 px-10 rounded-full border shadow-2xl backdrop-blur-3xl animate-in slide-in-from-bottom-10 duration-500 flex items-center gap-4 bg-white/5 border-white/10"
+      >
+        <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-accent-green">
+           <Zap class="w-4 h-4" />
+        </div>
+        <span class="text-xs font-black uppercase tracking-widest text-white/80">{{ toast }}</span>
+      </div>
+    </transition>
+
+    <!-- Stats Grid -->
+    <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 mb-16" v-if="data">
+      <div v-for="(stat, sIdx) in [
+        { label: 'Total Observed', value: data.total, icon: Radio, color: 'primary-indigo' },
+        { label: 'Shadow Endpoints', value: data.shadow_count, icon: ShieldAlert, color: 'accent-rose', isShadow: true },
+        { label: 'Documented Base', value: data.known_count, icon: ShieldCheck, color: 'accent-green' }
+      ]" :key="sIdx"
+        class="group glass-panel p-8 rounded-[32px] cursor-default transition-all duration-500 hover:translate-y-[-4px] hover:shadow-2xl overflow-hidden relative"
+        :class="stat.isShadow ? 'border-accent-rose/30 bg-accent-rose/[0.02]' : ''"
+      >
+        <div class="flex items-center gap-5 mb-6 relative z-10">
+          <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
+            <component :is="stat.icon" class="w-5 h-5 opacity-70" :class="`text-${stat.color}`" />
+          </div>
+          <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] leading-none">{{ stat.label }}</h3>
+        </div>
+        <div class="relative z-10">
+          <p class="text-5xl font-black text-white tracking-tighter" :class="stat.isShadow ? 'text-accent-rose animate-pulse' : ''">
+            {{ stat.value }}
+          </p>
+        </div>
+        <div class="absolute -right-8 -bottom-8 w-32 h-32 blur-[60px] rounded-full opacity-10 pointer-events-none transition-opacity group-hover:opacity-20" :class="`bg-${stat.color}`"></div>
+      </div>
     </div>
 
-    <!-- Stat cards -->
-    <div class="stats-row" v-if="data">
-      <div class="stat-card">
-        <div class="stat-icon">📡</div>
-        <div class="stat-body">
-          <p class="stat-label">Celkovo pozorovaných</p>
-          <p class="stat-value">{{ data.total }}</p>
+    <!-- Main Table Card -->
+    <div class="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      
+      <!-- Empty State -->
+      <div v-if="!data || !data.endpoints?.length" class="glass-panel rounded-[40px] p-32 flex flex-col items-center justify-center gap-8 shadow-2xl relative overflow-hidden">
+        <div class="w-24 h-24 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-center text-5xl shadow-2xl animate-bounce">
+           🛸
+        </div>
+        <div class="text-center relative z-10">
+          <h3 class="text-3xl font-black text-white tracking-tight mb-3">No Signals Intercepted</h3>
+          <p class="text-white/40 font-medium max-w-sm mx-auto">Click Scan Node to interrogate the system for undocumented traffic.</p>
         </div>
       </div>
-      <div class="stat-card shadow-card">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-body">
-          <p class="stat-label">Tieňové endpointy</p>
-          <p class="stat-value shadow-val">{{ data.shadow_count }}</p>
+
+      <!-- Radar List Panel -->
+      <div v-else class="glass-panel rounded-[40px] overflow-hidden shadow-2xl">
+        <div class="p-10 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between bg-white/[0.01] gap-6">
+          <div>
+            <h2 class="text-3xl font-black text-white tracking-tighter line-height-none">Signal Stream</h2>
+            <p class="text-white/30 text-sm font-medium mt-1 tracking-tight">Monitorované sieťové interfazy v reálnom čase</p>
+          </div>
+          <div class="flex items-center gap-6">
+             <label class="flex items-center gap-3 cursor-pointer group">
+               <input type="checkbox" v-model="showShadowOnly" class="w-5 h-5 rounded-lg bg-white/5 border-white/10 text-accent-rose focus:ring-accent-rose transition-all" />
+               <span class="text-[10px] font-black uppercase tracking-[0.2em] transition-colors" :class="showShadowOnly ? 'text-accent-rose' : 'text-white/30'">Shadow Only</span>
+             </label>
+             <span class="px-5 py-2 glass-card rounded-2xl text-white/70 text-[10px] font-black uppercase tracking-[0.2em] border border-white/5">
+              {{ filteredEndpoints.length }} SIGNALS
+            </span>
+          </div>
+        </div>
+
+        <div class="table-wrap custom-scrollbar overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-white/[0.02]">
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em] first:pl-12">Method</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Resource Path</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Frequency</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Last Intercept</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em] last:pr-12">Encryption / State</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.03]">
+              <tr v-for="e in filteredEndpoints" :key="e.id" 
+                class="group transition-colors duration-300"
+                :class="e.is_shadow ? 'bg-accent-rose/[0.02] hover:bg-accent-rose/[0.04]' : 'hover:bg-white/[0.02]'"
+              >
+                <td class="p-10 py-8 first:pl-12">
+                   <span 
+                    class="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] shadow-lg border"
+                    :class="methodStyle(e.method)"
+                  >
+                    {{ e.method }}
+                  </span>
+                </td>
+                <td class="p-10 py-8">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-base font-bold text-white tracking-tight group-hover:text-primary-cyan transition-colors">{{ e.endpoint }}</span>
+                    <span v-if="e.is_shadow" class="text-[8px] font-black text-accent-rose uppercase tracking-[0.2em] animate-pulse">Unauthorized Access Pattern</span>
+                  </div>
+                </td>
+                <td class="p-10 py-8">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-1 flex flex-col justify-end bg-white/5 rounded-full overflow-hidden">
+                      <div class="w-full bg-primary-indigo shadow-[0_0_8px_rgba(79,70,229,0.5)] transition-all duration-1000" :style="{ height: Math.min(100, (e.count / 100) * 100) + '%' }"></div>
+                    </div>
+                    <span class="text-xl font-black tracking-tighter text-white/70">{{ e.count }}</span>
+                  </div>
+                </td>
+                <td class="p-10 py-8">
+                  <span class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono whitespace-nowrap">
+                    {{ e.last_seen ? formatTime(e.last_seen) : 'NULL' }}
+                  </span>
+                </td>
+                <td class="p-10 py-8 last:pr-12">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg">
+                      <component :is="e.is_shadow ? AlertTriangle : CheckCircle2" 
+                        class="w-4 h-4" 
+                        :class="e.is_shadow ? 'text-accent-rose animate-pulse' : 'text-accent-green'" 
+                      />
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em]" :class="e.is_shadow ? 'text-accent-rose' : 'text-accent-green'">
+                      {{ e.is_shadow ? 'Shadow Node' : 'Known Proxy' }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
-        <div class="stat-body">
-          <p class="stat-label">Zdokumentované</p>
-          <p class="stat-value known-val">{{ data.known_count }}</p>
-        </div>
-      </div>
     </div>
-
-    <!-- Toast -->
-    <div v-if="toast" class="toast">{{ toast }}</div>
-
-    <!-- Loading -->
-    <div v-if="loading && !data" class="empty-state">
-      <div class="spinner"></div>
-      <span>Načítavam radar...</span>
-    </div>
-
-    <!-- Empty -->
-    <div v-else-if="!data || !data.endpoints?.length" class="empty-state">
-      <span style="font-size:2rem">📭</span>
-      <span>Žiadne dáta — klikni „Skenovať" a potom „Obnoviť"</span>
-    </div>
-
-    <!-- Table -->
-    <div v-else class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Pozorované endpointy</span>
-        <div style="display:flex;gap:0.5rem;align-items:center">
-          <label class="filter-label">
-            <input type="checkbox" v-model="showShadowOnly" />
-            Len tieňové
-          </label>
-          <span class="count-badge">{{ filteredEndpoints.length }}</span>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table class="radar-table">
-          <thead>
-            <tr>
-              <th>Metóda</th>
-              <th>Endpoint</th>
-              <th>Volania</th>
-              <th>Posledné</th>
-              <th>Typ</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="e in filteredEndpoints"
-              :key="e.id"
-              :class="e.is_shadow ? 'row-shadow' : ''"
-            >
-              <td>
-                <span class="method-badge" :class="methodClass(e.method)">{{ e.method }}</span>
-              </td>
-              <td class="mono">{{ e.endpoint }}</td>
-              <td class="fw">{{ e.count }}</td>
-              <td class="ts">{{ e.last_seen ? formatTime(e.last_seen) : '—' }}</td>
-              <td>
-                <span v-if="e.is_shadow" class="badge-shadow">⚠ SHADOW</span>
-                <span v-else class="badge-known">✅ KNOWN</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { 
+  Radio, ShieldAlert, ShieldCheck, Database, Search, 
+  RefreshCcw, AlertTriangle, CheckCircle2, Zap 
+} from 'lucide-vue-next';
 import api from '../api/api';
 
 const data = ref(null);
@@ -136,7 +209,7 @@ const fetchEndpoints = async () => {
     const res = await api.get('/radar/endpoints');
     data.value = res.data;
   } catch {
-    showToast('Chyba pri načítaní');
+    showToast('Chyba pri nadväzovaní spojenia.');
   } finally {
     loading.value = false;
   }
@@ -146,10 +219,10 @@ const scan = async () => {
   scanning.value = true;
   try {
     const res = await api.post('/radar/scan');
-    showToast(`Skenovanie hotové — ${res.data.scanned} endpointov spracovaných`);
+    showToast(`Skenovanie hotové — ${res.data.scanned} endpointov.`);
     await fetchEndpoints();
   } catch {
-    showToast('Chyba pri skenovaní');
+    showToast('Chyba pri skenovaní.');
   } finally {
     scanning.value = false;
   }
@@ -159,10 +232,10 @@ const seed = async () => {
   seeding.value = true;
   try {
     const res = await api.post('/radar/seed');
-    showToast(`Seed hotový — ${res.data.added} endpointov pridaných`);
+    showToast(`Seed hotový — ${res.data.added} pridaných.`);
     await fetchEndpoints();
   } catch {
-    showToast('Chyba pri seedovaní');
+    showToast('Chyba pri seedovaní.');
   } finally {
     seeding.value = false;
   }
@@ -174,134 +247,26 @@ const filteredEndpoints = computed(() => {
   return data.value.endpoints;
 });
 
-const methodClass = (method) => ({
-  GET:    'method-get',
-  POST:   'method-post',
-  DELETE: 'method-delete',
-  PUT:    'method-put',
-  PATCH:  'method-patch',
-}[method] || 'method-other');
+const methodStyle = (method) => ({
+  'GET':    'bg-primary-indigo/10 text-primary-indigo border-primary-indigo/30',
+  'POST':   'bg-accent-green/10 text-accent-green border-accent-green/30',
+  'DELETE': 'bg-accent-rose/10 text-accent-rose border-accent-rose/30',
+  'PUT':    'bg-primary-cyan/10 text-primary-cyan border-primary-cyan/30',
+  'PATCH':  'bg-white/5 text-white border-white/20',
+}[method] || 'bg-white/5 text-white/30 border-white/10');
 
-const formatTime = (ts) => new Date(ts).toLocaleString('sk-SK');
+const formatTime = (ts) => new Date(ts).toLocaleString('sk-SK', {
+  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+});
 
 onMounted(fetchEndpoints);
 </script>
 
 <style scoped>
-.radar-root { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
-@media (max-width: 480px) { .radar-root { padding: 1rem 0.5rem; gap: 1rem; } }
+.toast-fade-enter-active, .toast-fade-leave-active { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translate(-50%, 20px) scale(0.9); }
 
-.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
-.page-title  { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; }
-.page-sub    { font-size: 0.85rem; color: #94a3b8; margin: 0.2rem 0 0; }
-.header-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-@media (max-width: 480px) {
-  .page-title { font-size: 1.2rem; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-}
-
-.btn-ghost {
-  display: flex; align-items: center; gap: 0.4rem;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-  color: #cbd5e1; padding: 0.45rem 0.9rem; border-radius: 8px;
-  cursor: pointer; font-size: 0.85rem; transition: background 0.2s;
-}
-.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
-.btn-ghost:disabled { opacity: 0.5; cursor: default; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-@media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .stats-row { grid-template-columns: 1fr; } }
-.stat-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  backdrop-filter: blur(12px);
-  border-radius: 14px; padding: 1.1rem 1.25rem;
-  display: flex; align-items: center; gap: 1rem;
-  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.07);
-}
-.shadow-card { border-color: rgba(248,113,113,0.3); }
-.stat-icon  { font-size: 1.8rem; }
-.stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
-.stat-value { font-size: 1.6rem; font-weight: 700; color: #f1f5f9; margin: 0.1rem 0 0; }
-.shadow-val { color: #f87171; }
-.known-val  { color: #4ade80; }
-
-.panel {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px; overflow: hidden;
-}
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.85rem 1.1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.panel-title { font-weight: 600; color: #f1f5f9; }
-.count-badge {
-  background: rgba(99,102,241,0.25); color: #a5b4fc;
-  font-size: 0.75rem; font-weight: 700;
-  padding: 2px 10px; border-radius: 999px;
-}
-
-.filter-label {
-  display: flex; align-items: center; gap: 0.4rem;
-  font-size: 0.78rem; color: #94a3b8; cursor: pointer;
-}
-.filter-label input { cursor: pointer; accent-color: #f87171; }
-
-.table-wrap { overflow-x: auto; }
-.radar-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.radar-table thead tr { background: rgba(255,255,255,0.04); }
-.radar-table th {
-  padding: 0.6rem 0.9rem; text-align: left;
-  color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.radar-table tbody tr { transition: background 0.15s; }
-.radar-table tbody tr:hover { background: rgba(255,255,255,0.03); }
-.radar-table tbody tr.row-shadow { background: rgba(248,113,113,0.04); }
-.radar-table tbody tr.row-shadow:hover { background: rgba(248,113,113,0.08); }
-.radar-table td {
-  padding: 0.6rem 0.9rem; color: #cbd5e1;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.mono { font-family: monospace; font-size: 0.78rem; color: #94a3b8; }
-.fw   { font-weight: 700; }
-.ts   { color: #64748b; font-size: 0.78rem; }
-
-.method-badge { font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 5px; }
-.method-get    { background: rgba(59,130,246,0.2);  color: #93c5fd; }
-.method-post   { background: rgba(34,197,94,0.2);   color: #86efac; }
-.method-delete { background: rgba(239,68,68,0.2);   color: #fca5a5; }
-.method-put    { background: rgba(234,179,8,0.2);   color: #fde047; }
-.method-patch  { background: rgba(168,85,247,0.2);  color: #d8b4fe; }
-.method-other  { background: rgba(100,116,139,0.2); color: #94a3b8; }
-
-.badge-shadow { color: #f87171; font-weight: 700; font-size: 0.75rem; }
-.badge-known  { color: #4ade80; font-weight: 700; font-size: 0.75rem; }
-
-.toast {
-  position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%);
-  background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.15);
-  color: #f1f5f9; padding: 0.6rem 1.2rem;
-  border-radius: 10px; font-size: 0.85rem; z-index: 999;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-}
-
-.empty-state {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.75rem; padding: 3rem; color: #64748b; font-size: 0.9rem;
-}
-.spinner {
-  width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: #6366f1; border-radius: 50%; animation: spin .7s linear infinite;
+table th, table td {
+  white-space: nowrap;
 }
 </style>

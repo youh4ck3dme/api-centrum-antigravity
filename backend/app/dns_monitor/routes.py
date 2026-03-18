@@ -6,28 +6,13 @@ from fastapi.responses import JSONResponse
 
 from ..auth import decode_access_token
 from ..config import settings
+from ..deps import _verify_ws_token
 from .monitor import manager, dns_snapshot, recent_threats, last_scan_ts
 from .persistence import get_threats
 
 router = APIRouter(tags=["DNS Monitor"])
 
 
-def _verify_ws_token(token: str | None) -> bool:
-    """Validate JWT token or WS_TOKEN passed as query param for WebSocket auth."""
-    if not token:
-        return False
-
-    # Check WS_TOKEN (service-to-service bypass)
-    ws_token = getattr(settings, "WS_TOKEN", "")
-    if ws_token and token == ws_token:
-        return True
-
-    # Primary: JWT validation
-    try:
-        payload = decode_access_token(token)
-        return bool(payload.get("sub"))
-    except Exception:
-        return False
 
 
 @router.websocket("/dns-monitor/ws")

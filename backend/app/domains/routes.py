@@ -116,6 +116,67 @@ async def delete_domain_dns(domain_name: str, record_id: int, db: Session = Depe
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# -- FTP Management Routes --------------------------------------------------
+
+@router.get("/domains/{domain_name}/ftp")
+async def get_domain_ftp(domain_name: str, current_user: User = Depends(get_current_user_or_neon)):
+    """Get FTP accounts for a domain"""
+    try:
+        from ..websupport import WebsupportService
+        result = WebsupportService.get_ftp_accounts(domain_name)
+        return {"accounts": result.get("data", []), "domain": domain_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/domains/{domain_name}/ftp")
+async def create_domain_ftp(domain_name: str, data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_or_neon)):
+    """Create FTP account for a domain"""
+    try:
+        from ..websupport import WebsupportService
+        result = WebsupportService.create_ftp_account(domain_name, data)
+        new_log = models.AuditLog(user_id=current_user.id, action="create_ftp_account", detail=f"Created FTP account {data.get('login')} for {domain_name}")
+        db.add(new_log)
+        db.commit()
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/domains/{domain_name}/ftp/{account_id}")
+async def update_domain_ftp(domain_name: str, account_id: int, data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_or_neon)):
+    """Update FTP account for a domain"""
+    try:
+        from ..websupport import WebsupportService
+        result = WebsupportService.update_ftp_account(domain_name, account_id, data)
+        new_log = models.AuditLog(user_id=current_user.id, action="update_ftp_account", detail=f"Updated FTP account {account_id} for {domain_name}")
+        db.add(new_log)
+        db.commit()
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/domains/{domain_name}/ftp/{account_id}")
+async def delete_domain_ftp(domain_name: str, account_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_or_neon)):
+    """Delete FTP account"""
+    try:
+        from ..websupport import WebsupportService
+        result = WebsupportService.delete_ftp_account(domain_name, account_id)
+        new_log = models.AuditLog(user_id=current_user.id, action="delete_ftp_account", detail=f"Deleted FTP account {account_id} from {domain_name}")
+        db.add(new_log)
+        db.commit()
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/domains/portfolio")
 async def get_domain_portfolio(current_user: User = Depends(get_current_user_or_neon)):
     """Domain Portfolio Intelligence — expiry tracking, cost estimate, competitor watch."""

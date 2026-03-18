@@ -24,7 +24,9 @@ from .dns_monitor.routes import router as dns_monitor_router
 from .dns_monitor.provision import router as provision_router
 from .license_routes import router as license_router
 from .ai_routes import router as ai_router
+from .terminal.routes import router as terminal_router
 from .dns_monitor.monitor import dns_poll_loop
+from .monitoring.ssl_monitor import ssl_poll_loop
 from .config import settings
 
 from .metrics import performance_metrics
@@ -92,7 +94,7 @@ async def add_process_time_header(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(",") if settings.CORS_ORIGINS != "*" else ["*"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -117,6 +119,7 @@ app.include_router(dns_monitor_router, prefix="/api")
 app.include_router(provision_router, prefix="/api")
 app.include_router(license_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
+app.include_router(terminal_router, prefix="/api")
 
 import os
 from pathlib import Path
@@ -140,6 +143,7 @@ else:
 async def startup_event():
     import asyncio
     asyncio.create_task(dns_poll_loop())
+    asyncio.create_task(ssl_poll_loop())
 
 
 @app.get("/health")

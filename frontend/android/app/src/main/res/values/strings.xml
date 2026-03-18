@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">API Centrum</string>
+    <string name="title_activity_main">API Centrum</string>
+    <string name="package_name">com.apicentrum.app</string>
+    <string name="custom_url_scheme">com.apicentrum.app</string>
+</resources>

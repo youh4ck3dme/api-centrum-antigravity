@@ -4,6 +4,7 @@ import json
 import logging
 from typing import List, Dict, Any
 import httpx
+import asyncssh
 from .config import settings
 
 logger = logging.getLogger(__name__)
@@ -65,21 +66,59 @@ class AIService:
         return json.loads(result_text)
 
     @staticmethod
-    async def dns_chat(query: str, domain_context: str, history: List[Dict[str, str]] = None) -> str:
+    async def dns_chat(query: str, domain_context: str, history: List[Dict[str, str]] = None, vps_data: str = "") -> str:
         """
-        Troubleshoot DNS issues via chat.
+        Troubleshoot DNS/VPS issues via chat.
         """
         system_prompt = (
-            "Ste 'API Centrum AI Autopilot'. Pomáhate používateľom riešiť problémy s DNS a SSL. "
-            "Komunikujte výhradne v SLOVENČINE. Buďte stručný a profesionálny. "
-            "Na odpovede používajte poskytnutý kontext domény. "
-            "Ak vás niekto požiada o opravu, vysvetlite, čo by ste zmenili a prečo. "
-            "Kontext (Aktuálne DNS pre doménu):\n" + domain_context
+            "Si 'General Kukurica' 🌽 — legendarný AI kóder, server wizard a všeobecný génius. "
+            "Tvoja osobnosť:\n"
+            "- Vtipný, zábavný, humorný — vždy hodíš nejaký joke alebo sarkazmus\n"
+            "- NIKDY nepoviete 'nie', 'nemôžem' ani 'to nie je možné' — vždy nájdeš cestu\n"
+            "- Za každú úlohu — aj tú najšialenejšiu — si NADŠENÝ a okamžite ju riešiš\n"
+            "- Používaš VEĽA emoji (ale nie prehnane, prirodzene)\n"
+            "- Komunikuješ VÝHRADNE v SLOVENČINE\n"
+            "- Si stručný ale výstižný — žiadne dlhé nudné eseje\n"
+            "- Keď niečo opravuješ alebo vysvetľuješ, pridáš krátky vtip alebo komentár\n"
+            "- Oslovuješ používateľa ako 'šéfe', 'boss' alebo 'kapitán'\n"
+            "- Máš prístup k DNS záznamom aj stavu VPS servera\n\n"
+            "DNS kontext:\n" + domain_context
         )
-        
+        if vps_data:
+            system_prompt += "\n\nAktuálny stav VPS (live read-only výstup):\n" + vps_data
+
         messages = [{"role": "system", "content": system_prompt}]
         if history:
             messages.extend(history)
         messages.append({"role": "user", "content": query})
-        
+
         return await AIService._call_openai(messages)
+
+
+class VPSContext:
+    HOST = "194.182.87.6"
+    USER = "root"
+    PASS = "Poklop123#####"
+
+    CMD = (
+        "echo '===UPTIME===' && uptime && "
+        "echo '===DISK===' && df -h --output=target,size,used,avail,pcent 2>/dev/null | head -10 && "
+        "echo '===MEMORY===' && free -m && "
+        "echo '===LOAD===' && cat /proc/loadavg && "
+        "echo '===DOCKER===' && docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}' && "
+        "echo '===DOCKER_STATS===' && docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}' 2>/dev/null | head -15"
+    )
+
+    @classmethod
+    async def gather(cls) -> str:
+        """Run read-only commands on VPS and return formatted output."""
+        try:
+            async with asyncssh.connect(
+                cls.HOST, username=cls.USER, password=cls.PASS,
+                known_hosts=None, encoding="utf-8",
+            ) as conn:
+                result = await conn.run(cls.CMD, timeout=12)
+                return result.stdout[:3000]
+        except Exception as e:
+            logger.warning("VPSContext.gather failed: %s", e)
+            return f"[VPS nedostupný: {e}]"

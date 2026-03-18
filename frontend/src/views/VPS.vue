@@ -1,113 +1,170 @@
 <template>
-  <div class="vps-root">
-
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">VPS Monitor</h2>
-        <p class="page-sub">{{ data ? `${data.total} domén — ${data.server.ip}` : 'Načítavam...' }}</p>
+  <div class="flex-1 p-6 lg:p-10 overflow-y-auto custom-scrollbar relative">
+    
+    <!-- Hero Header -->
+    <header class="relative z-10 flex flex-col md:flex-row md:items-end justify-between mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary-cyan shadow-[0_0_8px_rgba(6,182,212,0.6)] animate-pulse"></span>
+            <span class="text-[9px] uppercase font-black text-white/50 tracking-[0.2em]">Matrix Node: Active</span>
+          </div>
+          <span v-if="data" class="text-white/20 text-[9px] uppercase tracking-widest font-bold">
+            IPv4: {{ data.server.ip }}
+          </span>
+        </div>
+        <h1 class="text-4xl lg:text-7xl font-black text-white tracking-tighter leading-none">VPS Monitor</h1>
+        <p class="text-white/40 text-lg font-medium tracking-tight">
+          {{ data ? `${data.total} monitorovaných domén na uzle ${data.server.hostname}` : 'Inicializujem spojenie...' }}
+        </p>
       </div>
-      <button @click="fetchStatus" class="btn-ghost" :disabled="loading">
-        <span :style="loading ? 'display:inline-block;animation:spin .7s linear infinite' : ''">🔄</span>
-        {{ loading ? 'Načítavam...' : 'Obnoviť' }}
-      </button>
-    </div>
 
-    <!-- Server card -->
-    <div class="stats-row" v-if="data">
-      <div class="stat-card">
-        <div class="stat-icon">🖥️</div>
-        <div class="stat-body">
-          <p class="stat-label">VPS IP</p>
-          <p class="stat-value mono">{{ data.server.ip }}</p>
+      <div class="mt-8 md:mt-0 flex gap-4">
+        <button 
+          @click="fetchStatus" 
+          class="flex items-center justify-center h-14 px-8 rounded-2xl glass-card text-white/50 hover:text-white transition-all shadow-xl hover:scale-105 active:scale-95 group overflow-hidden border border-white/5 font-black text-xs uppercase tracking-widest"
+          :disabled="loading"
+        >
+          <RefreshCcw class="w-4 h-4 mr-3 relative z-10" :class="{ 'animate-spin': loading }" />
+          <span class="relative z-10">{{ loading ? 'Syncing...' : 'Refresh' }}</span>
+          <div class="absolute inset-0 bg-white/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Row -->
+    <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16" v-if="data">
+      <div v-for="(stat, sIdx) in [
+        { label: 'Network Endpoint', value: data.server.ip, icon: Server, color: 'primary-indigo' },
+        { label: 'Matrix Host', value: data.server.hostname, icon: Globe, color: 'primary-cyan' },
+        { label: 'API Throughput (24h)', value: data.api_calls_24h, icon: Zap, color: 'accent-green' },
+        { label: 'Domain Capacity', value: `${onlineCount} / ${data.total}`, icon: Activity, color: 'primary-indigo' }
+      ]" :key="sIdx"
+        class="group glass-panel p-8 rounded-[32px] cursor-default transition-all duration-500 hover:translate-y-[-4px] hover:shadow-2xl"
+      >
+        <div class="flex items-center gap-5 mb-6">
+          <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
+            <component :is="stat.icon" class="w-5 h-5 opacity-70" :class="`text-${stat.color}`" />
+          </div>
+          <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] leading-none">{{ stat.label }}</h3>
+        </div>
+        <div class="pl-1">
+          <p class="text-2xl font-black text-white tracking-tighter truncate">{{ stat.value }}</p>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">🌍</div>
-        <div class="stat-body">
-          <p class="stat-label">Hostname</p>
-          <p class="stat-value mono">{{ data.server.hostname }}</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📡</div>
-        <div class="stat-body">
-          <p class="stat-label">API volania (24h)</p>
-          <p class="stat-value">{{ data.api_calls_24h }}</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🌐</div>
-        <div class="stat-body">
-          <p class="stat-label">Aktívne domény</p>
-          <p class="stat-value">{{ onlineCount }} / {{ data.total }}</p>
-        </div>
-      </div>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading && !data" class="empty-state">
-      <div class="spinner"></div>
-      <span>Pingujeme domény...</span>
-    </div>
-
-    <!-- Error -->
-    <div v-else-if="error" class="empty-state">
-      <span style="font-size:2rem">⚠️</span>
-      <span>{{ error }}</span>
-    </div>
-
-    <!-- Domain table -->
-    <div v-else-if="data" class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Stav domén</span>
-        <span class="count-badge">{{ data.total }}</span>
+    <!-- Main Content Panel -->
+    <div class="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+      
+      <!-- Loading State -->
+      <div v-if="loading && !data" class="glass-panel rounded-[40px] p-32 flex flex-col items-center justify-center gap-8 shadow-2xl">
+        <div class="w-16 h-16 border-2 border-primary-cyan/20 border-t-primary-cyan rounded-full animate-spin"></div>
+        <div class="flex flex-col items-center gap-2">
+          <span class="text-white/20 text-[10px] font-black uppercase tracking-[0.4em]">Interrogating Domains...</span>
+          <p class="text-white/10 text-xs italic">Verifying HTTPS handshakes and TTL records</p>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table class="vps-table">
-          <thead>
-            <tr>
-              <th>Doména</th>
-              <th>Registrar</th>
-              <th>HTTP status</th>
-              <th>HTTPS</th>
-              <th>SSL expiry</th>
-              <th>Stav</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="d in data.domains" :key="d.name">
-              <td class="mono">{{ d.name }}</td>
-              <td>
-                <span :class="d.registrar === 'Forpsi' ? 'reg-forpsi' : 'reg-ws'">{{ d.registrar }}</span>
-              </td>
-              <td>
-                <span v-if="d.http_status" :class="d.http_status < 400 ? 'badge-green' : 'badge-red'">
-                  {{ d.http_status }}
-                </span>
-                <span v-else class="badge-gray">—</span>
-              </td>
-              <td>
-                <span v-if="d.https_reachable" class="badge-green">✅ HTTPS</span>
-                <span v-else class="badge-red">❌ HTTP</span>
-              </td>
-              <td>
-                <span
-                  v-if="d.ssl_expiry_days !== null"
-                  :class="sslClass(d.ssl_expiry_days)"
-                >
-                  {{ d.ssl_expiry_days }}d
-                </span>
-                <span v-else class="badge-gray">N/A</span>
-              </td>
-              <td>
-                <span :class="isOnline(d) ? 'status-online' : 'status-offline'">
-                  {{ isOnline(d) ? '● Online' : '● Offline' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="glass-panel rounded-[40px] p-24 flex flex-col items-center justify-center gap-6 border-accent-rose/20 bg-accent-rose/5">
+        <div class="w-20 h-20 rounded-full bg-accent-rose/10 flex items-center justify-center border border-accent-rose/20">
+          <AlertTriangle class="w-10 h-10 text-accent-rose animate-pulse" />
+        </div>
+        <div class="text-center">
+          <h3 class="text-2xl font-black text-white tracking-tight mb-2">Sync Error</h3>
+          <p class="text-white/40 font-medium">{{ error }}</p>
+        </div>
+        <button @click="fetchStatus" class="px-8 py-3 bg-white text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">
+          Attempt Recon
+        </button>
+      </div>
+
+      <!-- Domain List Panel -->
+      <div v-else-if="data" class="glass-panel rounded-[40px] overflow-hidden shadow-2xl">
+        <div class="p-10 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+          <div>
+            <h2 class="text-3xl font-black text-white tracking-tighter line-height-none">Status Grid</h2>
+            <p class="text-white/30 text-sm font-medium mt-1 tracking-tight">Detailný prehľad sieťovej dostupnosti</p>
+          </div>
+          <div class="flex items-center gap-3">
+             <span class="px-5 py-2 glass-card rounded-2xl text-white/70 text-[10px] font-black uppercase tracking-[0.2em] border border-white/5">
+              {{ data.domains.length }} NODES
+            </span>
+          </div>
+        </div>
+
+        <div class="table-wrap custom-scrollbar overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-white/[0.02]">
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em] first:pl-12">Target Domain</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Gateway</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Response</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Encryption</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Entropy</th>
+                <th class="p-10 py-6 text-[10px] font-black text-white/20 uppercase tracking-[0.4em] last:pr-12">Integrity</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.03]">
+              <tr v-for="d in data.domains" :key="d.name" class="group hover:bg-white/[0.02] transition-colors duration-300">
+                <td class="p-10 py-8 first:pl-12">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-lg font-bold text-white tracking-tight group-hover:text-primary-cyan transition-colors">{{ d.name }}</span>
+                    <span class="text-[9px] font-black text-white/10 uppercase tracking-widest">Global Entry Point</span>
+                  </div>
+                </td>
+                <td class="p-10 py-8">
+                  <span 
+                    class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border"
+                    :class="d.registrar === 'Forpsi' ? 'bg-primary-indigo/10 text-primary-indigo border-primary-indigo/20' : 'bg-primary-cyan/10 text-primary-cyan border-primary-cyan/20'"
+                  >
+                    {{ d.registrar }}
+                  </span>
+                </td>
+                <td class="p-10 py-8">
+                  <div v-if="d.http_status" class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full" :class="d.http_status < 400 ? 'bg-accent-green' : 'bg-accent-rose'"></div>
+                    <span class="text-base font-black tracking-tighter text-white/70">{{ d.http_status }}</span>
+                  </div>
+                  <span v-else class="text-white/10 text-xs font-bold italic">No Response</span>
+                </td>
+                <td class="p-10 py-8">
+                  <div class="flex items-center gap-2">
+                    <component :is="d.https_reachable ? ShieldCheck : ShieldAlert" 
+                      class="w-4 h-4" 
+                      :class="d.https_reachable ? 'text-accent-green' : 'text-accent-rose'" 
+                    />
+                    <span class="text-[10px] font-black uppercase tracking-widest" :class="d.https_reachable ? 'text-white/40' : 'text-accent-rose/60'">
+                      {{ d.https_reachable ? 'Secure' : 'Insecure' }}
+                    </span>
+                  </div>
+                </td>
+                <td class="p-10 py-8">
+                  <div v-if="d.ssl_expiry_days !== null" class="flex flex-col gap-1.5 min-w-[100px]">
+                    <div class="flex justify-between items-end">
+                      <span class="text-[10px] font-black uppercase tracking-widest" :class="sslColor(d.ssl_expiry_days)">{{ d.ssl_expiry_days }} Dni</span>
+                    </div>
+                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full transition-all duration-1000" :class="sslBg(d.ssl_expiry_days)" :style="{ width: Math.min(100, (d.ssl_expiry_days / 90) * 100) + '%' }"></div>
+                    </div>
+                  </div>
+                  <span v-else class="text-white/10 text-[10px] font-bold uppercase tracking-widest">N/A</span>
+                </td>
+                <td class="p-10 py-8 last:pr-12">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div class="w-2 h-2 rounded-full shadow-[0_0_8px]" :class="isOnline(d) ? 'bg-accent-green shadow-accent-green/50' : 'bg-accent-rose shadow-accent-rose/50'"></div>
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em]" :class="isOnline(d) ? 'text-accent-green' : 'text-accent-rose'">
+                      {{ isOnline(d) ? 'Operational' : 'Critical' }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -116,6 +173,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { 
+  Server, Globe, Zap, Activity, RefreshCcw, 
+  ShieldCheck, ShieldAlert, AlertTriangle, Search, ChevronRight
+} from 'lucide-vue-next';
 import api from '../api/api';
 
 const data = ref(null);
@@ -129,7 +190,7 @@ const fetchStatus = async () => {
     const res = await api.get('/vps/status');
     data.value = res.data;
   } catch (err) {
-    error.value = 'Chyba pri načítaní VPS statusu';
+    error.value = 'Chyba pri nadväzovaní spojenia s Nexus uzlom.';
   } finally {
     loading.value = false;
   }
@@ -138,108 +199,24 @@ const fetchStatus = async () => {
 const isOnline = (d) => d.http_status !== null && d.http_status < 500;
 const onlineCount = computed(() => data.value?.domains.filter(isOnline).length ?? 0);
 
-const sslClass = (days) => {
-  if (days > 30) return 'badge-green';
-  if (days > 7)  return 'badge-yellow';
-  return 'badge-red';
+const sslColor = (days) => {
+  if (days > 30) return 'text-accent-green';
+  if (days > 7)  return 'text-primary-cyan';
+  return 'text-accent-rose';
+};
+
+const sslBg = (days) => {
+  if (days > 30) return 'bg-accent-green';
+  if (days > 7)  return 'bg-primary-cyan';
+  return 'bg-accent-rose';
 };
 
 onMounted(fetchStatus);
 </script>
 
 <style scoped>
-.vps-root { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
-@media (max-width: 480px) { .vps-root { padding: 1rem 0.5rem; gap: 1rem; } }
-
-.page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
-.page-title  { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; }
-.page-sub    { font-size: 0.85rem; color: #94a3b8; margin: 0.2rem 0 0; }
-@media (max-width: 480px) {
-  .page-title { font-size: 1.2rem; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-}
-
-.btn-ghost {
-  display: flex; align-items: center; gap: 0.4rem;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-  color: #cbd5e1; padding: 0.45rem 0.9rem; border-radius: 8px;
-  cursor: pointer; font-size: 0.85rem; transition: background 0.2s;
-}
-.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
-.btn-ghost:disabled { opacity: 0.5; cursor: default; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-@media (max-width: 1023px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .stats-row { grid-template-columns: 1fr; } }
-.stat-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  backdrop-filter: blur(12px);
-  border-radius: 14px; padding: 1.1rem 1.25rem;
-  display: flex; align-items: center; gap: 1rem;
-  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.07);
-}
-.stat-icon  { font-size: 1.8rem; }
-.stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
-.stat-value { font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0.1rem 0 0; }
-
-.panel {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px; overflow: hidden;
-}
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.85rem 1.1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.panel-title { font-weight: 600; color: #f1f5f9; }
-.count-badge {
-  background: rgba(99,102,241,0.25); color: #a5b4fc;
-  font-size: 0.75rem; font-weight: 700;
-  padding: 2px 10px; border-radius: 999px;
-}
-
-.table-wrap { overflow-x: auto; }
-.vps-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.vps-table thead tr { background: rgba(255,255,255,0.04); }
-.vps-table th {
-  padding: 0.6rem 0.9rem; text-align: left;
-  color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.vps-table tbody tr { transition: background 0.15s; }
-.vps-table tbody tr:hover { background: rgba(255,255,255,0.03); }
-.vps-table td {
-  padding: 0.6rem 0.9rem; color: #cbd5e1;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.mono { font-family: monospace; font-size: 0.78rem; color: #94a3b8; }
-
-.badge-green  { color: #4ade80; font-weight: 700; font-size: 0.8rem; }
-.badge-yellow { color: #facc15; font-weight: 700; font-size: 0.8rem; }
-.badge-red    { color: #f87171; font-weight: 700; font-size: 0.8rem; }
-.badge-gray   { color: #64748b; font-size: 0.8rem; }
-
-.status-online  { color: #4ade80; font-weight: 700; font-size: 0.8rem; }
-.status-offline { color: #f87171; font-weight: 700; font-size: 0.8rem; }
-
-.reg-ws     { color: #60a5fa; font-size: 0.75rem; font-weight: 600; }
-.reg-forpsi { color: #c084fc; font-size: 0.75rem; font-weight: 600; }
-
-.empty-state {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.75rem; padding: 3rem; color: #64748b; font-size: 0.9rem;
-}
-.spinner {
-  width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: #6366f1; border-radius: 50%; animation: spin .7s linear infinite;
+/* Table padding adjustment for custom layout */
+table th, table td {
+  white-space: nowrap;
 }
 </style>

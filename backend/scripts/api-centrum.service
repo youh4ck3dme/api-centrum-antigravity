@@ -1,0 +1,15 @@
+[Unit]
+Description=API Centrum - Domain & SSL Manager
+After=network.target postgresql.service
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/api-centrum-antiigravity/backend
+Environment="PATH=/root/api-centrum-antiigravity/backend/venv/bin"
+ExecStart=/root/api-centrum-antiigravity/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -181,6 +181,32 @@ class WebsupportService:
         """Return account info."""
         return WebsupportService._call("GET", "/v1/user/self")
 
+    # -- FTP accounts (v2) ----------------------------------------------------
+
+    @staticmethod
+    def get_ftp_accounts(service: str) -> dict:
+        """List FTP accounts for a service/domain."""
+        return WebsupportService._call("GET", f"/v2/service/{service}/ftp-account")
+
+    @staticmethod
+    def create_ftp_account(service: str, data: dict) -> dict:
+        """Create a new FTP account."""
+        return WebsupportService._call("POST", f"/v2/service/{service}/ftp-account", data=data)
+
+    @staticmethod
+    def update_ftp_account(service: str, account_id: int, data: dict) -> dict:
+        """Update an existing FTP account."""
+        return WebsupportService._call(
+            "PUT", f"/v2/service/{service}/ftp-account/{account_id}", data=data
+        )
+
+    @staticmethod
+    def delete_ftp_account(service: str, account_id: int) -> dict:
+        """Delete an FTP account."""
+        return WebsupportService._call(
+            "DELETE", f"/v2/service/{service}/ftp-account/{account_id}"
+        )
+
     # -- DynDNS -------------------------------------------------------------
 
     @staticmethod
