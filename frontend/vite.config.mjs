@@ -13,25 +13,41 @@ export default defineConfig({
         name: "API Centrum",
         short_name: "API Centrum",
         description: "API Centrum - Domain & SSL Manager",
-        theme_color: "#f5f5f7",
-        background_color: "#f5f5f7",
+        theme_color: "#020617",
+        background_color: "#000000",
         display: "standalone",
         start_url: "/",
         icons: [
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
-          { src: "/icons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
+          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      workbox: {
+        navigateFallback: "/index.html",
+        skipWaiting: true,
+        clientsClaim: true,
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
+            },
+          },
         ],
       },
     }),
   ],
   build: {
+    target: "es2020",
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-vue': ['vue'],
-          'vendor-lucide': ['lucide-vue-next']
+          'vendor-lucide': ['lucide-vue-next'],
+          'vendor-xterm': ['@xterm/xterm', '@xterm/addon-fit'],
         }
       }
     }
