@@ -21,6 +21,17 @@
   --color-bg-card: #0B0C0E;
   --color-bg-surface: #16181D;
 
+  /* Semantic Colors (used by Login.vue et al) */
+  --color-text-main: #EDEDED;
+  --color-text-dim: #888888;
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-default: rgba(255, 255, 255, 0.14);
+  --color-overlay-hover: rgba(255, 255, 255, 0.05);
+  --color-primary-indigo: #6366F1;
+  --color-primary-cyan: #06B6D4;
+  --color-accent-rose: #F43F5E;
+  --color-accent-green: #10B981;
+
   /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;

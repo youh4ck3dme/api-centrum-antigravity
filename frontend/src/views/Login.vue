@@ -7,7 +7,7 @@
     <!-- Central Mesh Grid -->
     <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0); background-size: 40px 40px;"></div>
 
-    <div class="main-card glass-panel w-full max-w-[460px] p-10 lg:p-12 rounded-[48px] shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-1000">
+    <div class="main-card glass-panel w-full max-w-[460px] p-10 lg:p-12 rounded-3xl lg:rounded-[48px] shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-1000">
       <!-- Logo section -->
       <div class="flex flex-col items-center mb-12">
         <div class="w-20 h-20 p-4 bg-overlay-hover border border-border-subtle rounded-[28px] shadow-2xl mb-6 group hover:scale-110 transition-transform duration-500">

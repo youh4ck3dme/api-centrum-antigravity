@@ -37,22 +37,29 @@
       <!-- Content -->
       <main class="flex-1 min-h-screen overflow-x-hidden relative z-10 lg:pl-0">
         <div :class="['mx-auto h-full', currentTab === 'github' ? 'max-w-full w-full' : 'content-container p-4 lg:p-8 max-w-[1800px]']">
-          <transition 
-            name="page" 
-            mode="out-in"
-          >
-            <Dashboard v-if="currentTab === 'dashboard'" />
-            <Domains v-else-if="currentTab === 'domains'" />
-            <DNSMonitor v-else-if="currentTab === 'dns-monitor'" />
-            <Backups v-else-if="currentTab === 'backups'" />
-            <Performance v-else-if="currentTab === 'performance'" />
-            <VPS v-else-if="currentTab === 'vps'" />
-            <Radar v-else-if="currentTab === 'radar'" />
-            <GithubProfile v-else-if="currentTab === 'github'" />
-            <Notes v-else-if="currentTab === 'notes'" />
-            <Terminal v-else-if="currentTab === 'terminal'" />
-            <AppSettings v-else-if="currentTab === 'settings'" />
-          </transition>
+          <Suspense>
+            <template #fallback>
+              <div class="flex items-center justify-center h-[60vh]">
+                <div class="w-8 h-8 border-2 border-white/10 border-t-brand-accent rounded-full animate-spin"></div>
+              </div>
+            </template>
+            <transition 
+              name="page" 
+              mode="out-in"
+            >
+              <Dashboard v-if="currentTab === 'dashboard'" />
+              <Domains v-else-if="currentTab === 'domains'" />
+              <DNSMonitor v-else-if="currentTab === 'dns-monitor'" />
+              <Backups v-else-if="currentTab === 'backups'" />
+              <Performance v-else-if="currentTab === 'performance'" />
+              <VPS v-else-if="currentTab === 'vps'" />
+              <Radar v-else-if="currentTab === 'radar'" />
+              <GithubProfile v-else-if="currentTab === 'github'" />
+              <Notes v-else-if="currentTab === 'notes'" />
+              <Terminal v-else-if="currentTab === 'terminal'" />
+              <AppSettings v-else-if="currentTab === 'settings'" />
+            </transition>
+          </Suspense>
         </div>
       </main>
 
