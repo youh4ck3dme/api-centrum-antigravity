@@ -1,56 +1,145 @@
-# API Centrum — Roadmap
+============================================================
+  API CENTRUM — STAV PROJEKTU & TODO
+  Aktualizované: 20.03.2026 20:56
+============================================================
 
-## Nápady na ďalší vývoj
+LIVE URL:     https://frontend-h4ck3d.vercel.app
+GITHUB:       https://github.com/youh4ck3dme/api-centrum-antigravity
+BACKEND VPS:  194.182.87.6:5555
 
-- [ ] 🔴 **Live DNS Threat Monitor (WebSocket)**
-  Real-time sledovanie DNS zmien na všetkých doménach každých 60 sekúnd.
-  Ak niekto zmení A record, MX record alebo pridá podozrivý CNAME — okamžitá push
-  notifikácia v paneli + email alert. Detekcia DNS hijackingu, typosquattingu
-  a subdomain takeover. Dashboard sa živí z WebSocket streamu, nie polling.
+PRIHLASOVACIE UDAJE:
+  Email:  larsenevans@proton.me
+  Heslo:  heslo
 
-- [ ] 🤖 **GPT-4 Powered SSL/DNS Autopilot**
-  Pripoj OpenAI API — pri každom security audite nech AI reálne opraví zistené
-  problémy (chýbajúce SPF, DKIM, DMARC, CAA záznamy). Nielen audit ale aj
-  autofix s vysvetlením čo zmenil a prečo. Chat interface kde sa pýtaš
-  „Prečo moja doména nedostáva emaily?" a AI pozrie DNS a odpovie.
+============================================================
+  ✅ DOKONCENE (8 PROMPTOV)
+============================================================
 
-- [ ] ⚡ **One-Click VPS Provisioning**
-  Z panelu klikneš „Nový server" → vybereš lokáciu → API zavolá Hetzner/DigitalOcean
-  API, vytvorí VPS, automaticky nakonfiguruje nginx, nainštaluje SSL cert cez
-  Let's Encrypt, vytvorí A záznam na Websupport a nasadí Docker stack.
-  Celé za ~3 minúty bez dotyku terminálu.
+[✅] PROMPT 1 — Cistenie repozitara
+    - Odstranene: Untitled-1.ini, .zip, .db, build logy, debug skripty
+    - Fixnuty duplikovany @staticmethod v ai_service.py
+    - Odstranene hardcoded auth fallbacky (larsenevans@proton.me)
+    - Vylepseny .gitignore (*.zip, *.ini, *.db, tmp/, pnpm-lock)
 
-- [ ] 📊 **Domain Portfolio Intelligence**
-  Analýza expirácie domén s predikciou — ktoré domény sú rizikové (expirujú
-  za menej ako 30 dní), koľko ťa stoja ročne, hodnota portfolia. Automatické
-  obnovenie cez Websupport API ak je dostupné. Plus competitor monitoring —
-  sleduj či niekto nezaregistroval podobnú doménu ako tvoja
-  (napr. `nexify-studios.tech`, `nexify-studio.sk`).
+[✅] PROMPT 2 — Backend bezpecnostny hardening
+    - CORS zmeneny z ["*"] na settings.CORS_ORIGINS
+    - Pridany X-XSS-Protection header
+    - Modernizovany startup na FastAPI lifespan (graceful shutdown)
+    - Pridana validacia: SQLite blokovany v produkcii
+    - Health endpoint rozaireny o DB check
 
-## Roadmap: Chýbajúce Super Funkcie (Prompty pre AI)
+[✅] PROMPT 3 — Vercel deployment konfiguracia
+    - Vytvoreny frontend/vercel.json (SPA rewrites, cache headers)
+    - .env.production: HTTPS URL namiesto HTTP
+    - SEO meta tagy (description, OG, apple-touch-icon)
+    - robots.txt
+    - Build: es2020 target, sourcemaps off
 
-Tu je zoznam funkcií, ktoré posunú projekt na úroveň profesionálneho SaaS, spolu s promptami na ich realizáciu:
+[✅] PROMPT 4 — UI/UX polish
+    - Pridanych 10 chybajucich CSS theme premennych (text-main, text-dim, 
+      border-subtle, overlay-hover, primary-indigo, primary-cyan, accent-rose, accent-green)
+    - Suspense wrapper s loading spinnerom pre async komponenty
+    - Login card responsive border-radius (rounded-3xl na mobile)
 
-### 1. 🤖 Radar AI (Interaktívny Copilot)
-- **Prompt**: *"Implementuj do pohľadu Radar.vue interaktívne chatovacie rozhranie (AI Copilot) v štýle Apple. Napoj ho na backend endpointy v ai_routes.py. Copilot musí mať prístup k aktuálnym dátam z dashboardu, aby vedel odpovedať na otázky typu 'Ktorá doména expruje prvá?' alebo 'Analyzuj výkon môjho VPS'. Použi moderný glassmorphism dizajn a plynulé animácie písania."*
+[✅] PROMPT 5 — API robustnost
+    - Retry logika (3 pokusy, exponential backoff) pre 5xx a network errors
+    - Token refresh flow pred 401 redirect
+    - Dev logging pre requesty
+    - Odstranene print() debug statementy z ai_service.py
 
-### 2. 🌐 Full Websupport Management (DNS & SSL)
-- **Prompt**: *"Rozšír modul Websupport.vue tak, aby umožňoval plný manažment DNS záznamov (A, CNAME, MX). Implementuj modálne okná pre pridanie a editáciu záznamov pomocou funkcií v websupport.py. Pridaj vizuálnu indikáciu stavu SSL certifikátov a tlačidlo 'Obnoviť certifikát', ktoré zavolá príslušnú API akciu. Celé rozhranie musí byť v 1px precision dizajne."*
+[✅] PROMPT 6 — CI/CD pipeline
+    - .github/workflows/ci.yml
+    - Backend job: Python 3.11, pytest
+    - Frontend job: Node 20, npm ci, build, vitest
 
-### 3. 🔔 Aktívny Monitoring & Push Notifikácie
-- **Prompt**: *"Vytvor v App.vue a api.js systém pre spracovanie real-time notifikácií. Využi možnosti PWA (Service Workers) pre zasielanie push správ, ak backend v monitoring/ detectne výpadok (status 404/500). Pridaj do Sidebar.vue funkčný zvonček s badgeom počtu neprečítaných upozornení a panel s históriou incidentov."*
+[✅] PROMPT 7 — PWA & Performance
+    - Workbox runtime caching (NetworkFirst pre /api/*)
+    - skipWaiting + clientsClaim
+    - Chunk splitting: vendor-vue, vendor-lucide, vendor-xterm
+    - PWA ikony: separate purpose (any vs maskable)
+    - font-display: swap
 
-### 4. 📈 Historické Grafy (Performance Analytics)
-- **Prompt**: *"Implementuj do Performance.vue a VPS.vue grafy (použi Chart.js alebo Vue-Chartjs), ktoré budú zobrazovať históriu vyťaženia CPU, RAM a sieťovej prevádzky za posledných 24 hodín. Uprav backend v performance/ tak, aby ukladal minútové snapshoty do databázy a poskytoval ich cez nový endpoint /metrics/history. Grafy musia ladiť s tmavým 'Pure Black' dizajnom (neónové čiary, jemné gradienty)."*
+[✅] PROMPT 8 — Finalny deploy
+    - README.md s architekturou, deploy navodom, env variables
+    - Deploynuty na Vercel: https://frontend-h4ck3d.vercel.app
+    - Deployment Protection vypnuta
+    - Vsetko pushnute na GitHub
 
-### 5. 💻 Funkčný SSH Terminál (xterm.js)
-- **Prompt**: *"Premeň Terminal.vue na reálne funkčnú konzolu pomocou knižnice xterm.js. Na backende v terminal/ vytvor WebSocket server, ktorý bude tunelovať príkazu cez SSH na definované VPS servery. Implementuj podporu pre uloženie viacerých SSH profilov (host, meno, kľúč) a zabezpeč šifrovaný prenos dát."*
+============================================================
+  📋 TODO — CO ESTE TREBA SPRAVIT
+============================================================
 
-### 6. 💳 Licenčný a Fakturačný Portál
-- **Prompt**: *"Vytvor pohľad Billing.vue (alebo rozšír Settings.vue), kde si používateľ môže spravovať svoje predplatné. Implementuj zobrazenie aktuálnej licencie pomocou dát z license_routes.py, zoznam faktúr v PDF a tlačidlá na upgrade balíka. Integruj vizuálny indikátor platnosti licencie ('Aktívna', 'Expruje', 'Neplatná')."*
+[❗] VYSOKA PRIORITA:
+    [ ] Backend na VPS — zapnut HTTPS (nginx reverse proxy + Let's Encrypt)
+        - Prikaz: certbot --nginx -d api.nexify-studio.tech
+        - Vercel frontend vola https://api.nexify-studio.tech/api
+        - Bez HTTPS browser zablokuje mixed content
+    
+    [ ] CORS na backende — pridat Vercel domenu:
+        - CORS_ORIGINS=...,https://frontend-h4ck3d.vercel.app
+        - V .env na VPS
+    
+    [ ] Zmenit heslo pre produkcne nasadenie
+        - Aktualny default heslo "heslo" je nebezpecne
+        - python backend/reset_pw.py alebo cez API /auth/register
 
-### 7. ⌘K Global Search (Command Palette)
-- **Prompt**: *"Implementuj globálnu 'Command Palette' (ako v Raycast alebo macOS Spotlight), ktorá sa otvorí po stlačení ⌘K (alebo CTRL+K). Paleta musí umožňovať okamžité vyhľadávanie v doménach, navigáciu medzi sekciami a rýchle akcie ako 'Pridať doménu' alebo 'Reštartovať VPS'. Použi hlboký blur efekt a ultra-rýchlu odozvu."*
+    [ ] Rotovat GitHub PAT token (bol viditelny v chate)
+        - https://github.com/settings/tokens → zmazat stary → novy
 
----
-https://studio-2491913884-9484a.web.app/dashboard - dalsie napady z mojeho projektu !
+[⚠️] STREDNA PRIORITA:
+    [ ] Neon PostgreSQL — migrat z SQLite na Neon pre VPS produkciu
+        - Zmena DATABASE_URL v .env na VPS
+        - alembic upgrade head
+    
+    [ ] Vercel Environment Variables — nastavit cez dashboard:
+        - VITE_API_URL, VITE_WS_URL, VITE_APP_NAME
+    
+    [ ] Sentry DSN — nastavit pre error tracking
+    
+    [ ] Backend testy — opravit failing testy a spustit full suite
+        - cd backend && python -m pytest tests/ -v
+
+    [ ] Frontend testy — opravit a rozbehat vitest
+        - cd frontend && npx vitest run
+
+[💡] NIZKA PRIORITA / NICE-TO-HAVE:
+    [ ] Custom domena pre Vercel (napr. app.nexify-studio.tech)
+    [ ] Lighthouse audit — ciel 90+ vo vsetkych kategoriach
+    [ ] E2E testy (Playwright alebo Cypress)
+    [ ] Capacitor Android build (ak treba mobilnu appku)
+    [ ] Dark/Light theme toggle (podklady existuju v useTheme.js)
+    [ ] WebSocket reconnect s backoff v useWebSocket.js
+    [ ] Odstranit Neon Auth trial kod (mrtvy kod ak trial skoncil)
+
+============================================================
+  📁 STRUKTURA PROJEKTU
+============================================================
+
+api-centrum-antiigravity/
+├── backend/              ← FastAPI + SQLAlchemy
+│   ├── app/              ← Hlavny kod (main.py, config.py, routes)
+│   ├── tests/            ← 20 testovacich suborov
+│   ├── alembic/          ← DB migracie
+│   ├── .env              ← LOKALNE tajne (❌ NIKDY commitovat)
+│   ├── .env.example      ← Sablona env premennych
+│   └── requirements.txt  ← Python zavislosti
+├── frontend/             ← Vue 3 + Vite + TailwindCSS 4
+│   ├── src/
+│   │   ├── views/        ← 12 stranok (Dashboard, Domains, Login...)
+│   │   ├── components/   ← 11+ komponentov
+│   │   ├── composables/  ← 5 composables (useStats, useTheme...)
+│   │   ├── api/          ← Axios instance s retry logikou
+│   │   └── tailwind.css  ← Design system
+│   ├── vercel.json       ← Vercel konfiguracia
+│   ├── .env.production   ← Prod env vars
+│   └── package.json      ← Node zavislosti
+├── .github/workflows/    ← CI/CD pipeline
+│   └── ci.yml
+├── docs/
+│   └── PRODUCTION_PROMPTS.md  ← 8 promptov (archiv)
+├── README.md             ← Dokumentacia
+└── .gitignore            ← Bezpecnostne pravidla
+
+============================================================
+  KONIEC SUBORU
+============================================================
