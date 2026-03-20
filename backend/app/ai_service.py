@@ -225,11 +225,7 @@ class AIService:
                 final_response_data = await AIService._call_openai(messages)
                 return final_response_data["choices"][0]["message"]["content"]
             except Exception as e:
-                import traceback
-                logger.error(f"Error in second OpenAI call: {e}")
-                # Vypíšeme kritické informácie do stdout, aby sme ich videli v command_status
-                print(f"DEBUG: Messages sent to OpenAI:\n{json.dumps(messages, indent=2)}")
-                print(f"DEBUG: Exception details: {traceback.format_exc()}")
+                logger.error(f"Error in second OpenAI call: {e}", exc_info=True)
                 raise
 
         return response_message["content"]
