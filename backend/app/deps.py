@@ -15,27 +15,22 @@ def get_db_dep():
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_dep)) -> models.User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = decode_access_token(token)
         email = payload.get("sub")
-        if email:
-            user = crud.CRUDUser.get_by_email(db, email)
-            if user and user.is_active:
-                return user
+        if not email:
+            raise credentials_exception
+        user = crud.CRUDUser.get_by_email(db, email)
+        if not user or not user.is_active:
+            raise credentials_exception
+        return user
     except Exception:
-        pass
-        
-    # Default to test user if no valid token
-    user = crud.CRUDUser.get_by_email(db, "larsenevans@proton.me")
-    if user:
-        return user
-        
-    # Absolute fallback to first user
-    user = db.query(models.User).first()
-    if user:
-        return user
-        
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No users found")
+        raise credentials_exception
 
 
 def require_superuser(current_user: models.User = Depends(get_current_user)):

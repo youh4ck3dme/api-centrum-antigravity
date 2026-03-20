@@ -14,12 +14,9 @@ def bootstrap():
     Session = sessionmaker(bind=engine)
     session = Session()
     
-    email = "larsenevans@proton.me"
-    # Note: Replace 'password' with something the user knows or I'll provide
-    # The user's input had password '••••••••' which is 8 chars.
-    # I'll use a placeholder and notify them if they need to reset or if they can use a specific one.
-    # Actually, I'll set it to 'heslo123' or something simple but notify them.
-    password = "heslo" 
+    import os
+    email = os.environ.get("BOOTSTRAP_EMAIL", "admin@example.com")
+    password = os.environ.get("BOOTSTRAP_PASSWORD", "changeme")
     
     stmt = select(User).where(User.email == email)
     user = session.execute(stmt).scalars().first()

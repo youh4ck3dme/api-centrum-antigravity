@@ -58,13 +58,11 @@ class CompositeAuthService:
         except Exception:
             pass
 
-        # Global fallback for "no login" requirement
-        user = CRUDUser.get_by_email(db, "larsenevans@proton.me")
-        if user: return user
-        user = db.query(User).first()
-        if user: return user
-            
-        raise HTTPException(status_code=401, detail="No users found")
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     def login_composite(
         self, 

@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 class AIService:
     @staticmethod
-    @staticmethod
     async def _call_openai(messages: List[Dict[str, str]], json_mode: bool = False, tools: List[Dict[str, Any]] = None) -> Any:
         if not settings.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY is not configured")
