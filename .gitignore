@@ -1,11 +1,14 @@
 # Common
 .DS_Store
 .env
+.env.local
 .venv
 venv/
 env/
 *.log
-backend_crash.log
+*.zip
+*.ini
+*.tar.gz
 
 # Python
 __pycache__/
@@ -16,21 +19,26 @@ __pycache__/
 htmlcov/
 .mypy_cache/
 *.db
-!backend/app/backups/valid_backup.db # keep if needed, but usually .db should be ignored
 
 # Tooling
 .claude/
+.gemini/
 
 # Node
 node_modules/
 dist/
 .vite/
 .vercel
-dist/
 frontend/build_*.txt
+pnpm-lock.yaml
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Temp / Build artifacts
+tmp/
+backend_crash.log
+build_log_utf8.txt
