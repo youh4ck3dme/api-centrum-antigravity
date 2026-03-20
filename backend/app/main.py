@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 from .instrumentation import limiter
 from .domains import routes as domain_routes
 from .ssl import routes as ssl_routes
@@ -36,6 +37,7 @@ settings.validate_security_settings()
 BASE_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
 }
@@ -48,7 +50,16 @@ CSP_HEADER = (
 )
 DOCS_PREFIXES = ("/docs", "/redoc", "/openapi.json")
 
-app = FastAPI(title="Domain & SSL Manager API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import asyncio
+    dns_task = asyncio.create_task(dns_poll_loop())
+    ssl_task = asyncio.create_task(ssl_poll_loop())
+    yield
+    dns_task.cancel()
+    ssl_task.cancel()
+
+app = FastAPI(title="Domain & SSL Manager API", lifespan=lifespan)
 
 # Add GZip compression for payloads > 1000 bytes
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -94,7 +105,7 @@ async def add_process_time_header(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -139,16 +150,21 @@ else:
 
 # All routers already included above
 
-@app.on_event("startup")
-async def startup_event():
-    import asyncio
-    asyncio.create_task(dns_poll_loop())
-    asyncio.create_task(ssl_poll_loop())
-
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "env": settings.ENV}
+    from sqlalchemy import text
+    health_status = {"status": "ok", "env": settings.ENV}
+    try:
+        from .db import SessionLocal
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        health_status["database"] = "connected"
+    except Exception as e:
+        health_status["database"] = f"error: {str(e)}"
+        health_status["status"] = "degraded"
+    return health_status
 
 @app.get("/")
 def root():
@@ -156,5 +172,4 @@ def root():
         "message": "API Centrum - Domain & SSL Manager",
         "version": "1.0.0",
         "documentation": "/docs",
-        "neon_auth_trial": "active" if settings.ENV == "development" else "check_status"
     }

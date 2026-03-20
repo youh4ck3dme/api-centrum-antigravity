@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Forpsi domains (manual list, comma-separated) — Forpsi has no REST API
     FORPSI_DOMAINS: str = ""
 
-    DATABASE_URL: str = "sqlite:///./test.db"
+    DATABASE_URL: str = "sqlite:///./api_centrum.db"
     CERTBOT_EMAIL: str = ""
     ENV: str = "development"
     # In production, this MUST be set via environment variable
@@ -41,9 +41,9 @@ class Settings(BaseSettings):
     VPS_USER: str = ""
     VPS_PASS: str = ""
 
-    # Defaults for local development
+    # Defaults for local development (override via env vars in production)
     ALLOWED_HOSTS: str = "localhost,127.0.0.1,0.0.0.0,localhost:8000,localhost:3000,testserver"
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://*.vercel.app"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -57,5 +57,8 @@ class Settings(BaseSettings):
 
         if len(self.JWT_SECRET) < 32:
             raise RuntimeError("JWT_SECRET must be at least 32 characters in production.")
+
+        if "sqlite" in self.DATABASE_URL.lower():
+            raise RuntimeError("SQLite is not allowed in production. Use PostgreSQL.")
 
 settings = Settings()
