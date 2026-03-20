@@ -108,59 +108,6 @@ class NeonAuthService:
         else:
             return f"{base_url}?client_id={client_id}&response_type=code"
 
-# Global instance
-            
-            if not key:
-                raise HTTPException(status_code=401, detail="Unable to find matching key")
-            
-            # Verify token
-            payload = jwt.decode(
-                token, 
-                key, 
-                algorithms=["RS256"],
-                audience="api-centrum",  # Your API identifier
-                options={"verify_exp": True}
-            )
-            
-            return payload
-            
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Token has expired")
-        except jwt.InvalidTokenError:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        except Exception as e:
-            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
-    
-    def get_user_info_from_token(self, token: str) -> dict:
-        """Extract user info from Neon Auth token"""
-        payload = self.verify_neon_token(token)
-        
-        return {
-            "email": payload.get("email"),
-            "name": payload.get("name"),
-            "sub": payload.get("sub"),  # User ID
-            "roles": payload.get("roles", []),
-            "organizations": payload.get("organizations", [])
-        }
-    
-    def is_trial_active(self) -> bool:
-        """Check if trial is still active (basic check)"""
-        try:
-            # Try to fetch JWKS as a basic health check
-            self.get_jwks()
-            return True
-        except:
-            return False
-    
-    def get_login_url(self, redirect_uri: str = None) -> str:
-        """Get Neon Auth login URL"""
-        base_url = self.auth_url
-        client_id = "api-centrum"  # You would register this in Neon Auth
-        
-        if redirect_uri:
-            return f"{base_url}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
-        else:
-            return f"{base_url}?client_id={client_id}&response_type=code"
 
 # Global instance
 neon_auth_service = NeonAuthService()

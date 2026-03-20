@@ -1,106 +1,127 @@
-@import "tailwindcss";
-
 @theme {
-  /* Apple-Style Light Palette */
-  --color-primary-indigo: #0071e3; /* Apple Blue */
-  --color-primary-cyan: #5ac8fa;
-  --color-accent-green: #34c759;
-  --color-accent-rose: #ff3b30;
-  --color-warning: #ffcc00;
-  --color-info: #007aff;
-
-  /* Backgrounds */
-  --color-bg-dark: #f5f5f7; /* Main background */
-  --color-bg-card: #ffffff;
-  --color-bg-surface: #fbfbfd;
-
-  /* Text Colors */
-  --color-text-main: #1d1d1f;
-  --color-text-dim: #86868b;
-  --color-text-light: #f5f5f7;
-
-  /* Apple Design Tokens */
-  --color-glass-base: rgba(255, 255, 255, 0.82);
-  --color-glass-border: rgba(0, 0, 0, 0.05);
-  --color-glass-shine: rgba(255, 255, 255, 0.1);
+  /* Resend-Style Industrial Palette */
+  --color-white: #ffffff;
+  --color-black: #000000;
   
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
+  /* Neutral Scale (Industrial Grays) */
+  --color-gray-50: #0B0C0E;  /* Surface Deep */
+  --color-gray-100: #16181D; /* Surface Lighter */
+  --color-gray-200: #222222; /* Borders fallback */
+  --color-gray-600: #888888; /* Muted Text */
+  --color-gray-900: #EDEDED; /* Main Text */
 
-  /* Box Shadows - Soft & Elegant */
-  --shadow-premium: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
-  --shadow-glass-glow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
-  --shadow-inner-shine: inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+  /* Semantic Accents */
+  --color-brand-primary: #ffffff;
+  --color-brand-accent: #F59E0B; /* Industrial Yellow */
+  --color-brand-danger: #EF4444; /* Crisis Red */
+  --color-brand-success: #10B981;
 
-  /* Animations */
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-pulse-subtle: pulse-subtle 4s ease-in-out infinite;
+  /* Typed Backgrounds */
+  --color-bg-dark: #000000;
+  --color-bg-card: #0B0C0E;
+  --color-bg-surface: #16181D;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Apple/Resend Shadows */
+  --shadow-premium: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 24px -2px rgba(0, 0, 0, 0.4);
+  --shadow-glow-yellow: 0 0 15px rgba(245, 158, 11, 0.15);
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+:root {
+  --theme-bg-dark: #000000;
+  --theme-bg-card: #0B0C0E;
+  --theme-text-main: #EDEDED;
+  --theme-text-dim: #888888;
+  --theme-border-subtle: rgba(255, 255, 255, 0.08);
+  --theme-border-default: rgba(255, 255, 255, 0.14);
 }
 
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
+/* Global Industrial Reset */
+body {
+  background-color: #000000;
+  color: #EDEDED;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-@keyframes mesh {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-/* Glassmorphism Light Components */
+/* Industrial Card (Resend Style) */
 .glass-panel {
-  background: var(--color-glass-base);
-  backdrop-filter: blur(25px) saturate(180%);
-  -webkit-backdrop-filter: blur(25px) saturate(180%);
-  border: 1px solid var(--color-glass-border);
-  box-shadow: var(--shadow-premium), var(--shadow-inner-shine);
+  background: rgba(11, 12, 14, 0.8);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #0B0C0E;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.6);
-  border-color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: #16181D;
+  transform: translateY(-1px);
 }
 
-/* Scrollbar Utilities */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.1);
+/* Resend-Style Button Base */
+.btn-industrial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.mesh-bg {
-  background: var(--color-bg-dark);
+.btn-industrial-primary {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.btn-industrial-primary:hover {
+  background-color: #e5e5e5;
+  transform: scale(0.98);
+}
+
+.btn-industrial-secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-industrial-secondary:hover {
+  border-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Industrial Badge */
+.badge-industrial {
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
 }

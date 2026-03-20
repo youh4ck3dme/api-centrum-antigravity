@@ -27,3 +27,13 @@ docker-compose up --build
 - JWT_SECRET a iné citlivé hodnoty ukladaj mimo repozitára.
 - V produkcii obmedz CORS, zapni HTTPS a nastav reverzný proxy (Nginx).
 - Certbot vyžaduje porty 80/443; v Docker prostredí rieš s hostom alebo Nginx.
+
+## Budúci rozvoj & Roadmap
+
+Projekt má jasne definovaný plán pre ďalšiu fázu vývoja, vrátane implementácie AI Copilota, pokročilého monitoringu a SSH terminálu. 
+
+Kompletný zoznam chýbajúcich funkcií a **super-promptov** pre ich implementáciu nájdete v súbore [TODO.md](file:///c:/Users/42195/Desktop/api-centrum-antiigravity/TODO.md).
+
+---
+Vygenerované pre: **PANDORA BROWSER / lovable.dev**
+Dátum: 19. 3. 2026

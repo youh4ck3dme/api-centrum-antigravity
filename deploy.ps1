@@ -10,16 +10,16 @@ Write-Host "Creating deployment bundle..." -ForegroundColor Cyan
 if (Test-Path $TAR_FILE) { Remove-Item $TAR_FILE }
 
 # Using tar (available in modern Windows) to bundle the project
-tar --exclude="backend/venv" --exclude="__pycache__" --exclude=".git" --exclude="node_modules" --exclude=".pytest_cache" --exclude="dist" -czf $TAR_FILE .
+tar --exclude="$TAR_FILE" --exclude="backend/venv" --exclude="__pycache__" --exclude=".git" --exclude="node_modules" --exclude=".pytest_cache" --exclude="dist" -czf $TAR_FILE .
 
 Write-Host "Transferring bundle to VPS..." -ForegroundColor Cyan
 # Fixing the variable interpolation and ensure using the identity file
 scp -i "$SSH_KEY" "$TAR_FILE" "root@${VPS_IP}:/root/"
 
 # Extracting and starting services on VPS
-ssh -i "$SSH_KEY" "root@${VPS_IP}" "mkdir -p $REMOTE_DIR && tar -xzf /root/$TAR_FILE -C $REMOTE_DIR && cd $REMOTE_DIR && ./scripts/deploy_vps.sh"
+ssh -i "$SSH_KEY" "root@${VPS_IP}" "mkdir -p $REMOTE_DIR && tar -xzf /root/$TAR_FILE -C $REMOTE_DIR && cd $REMOTE_DIR && chmod +x ./backend/scripts/deploy_vps.sh && ./backend/scripts/deploy_vps.sh"
 
 Write-Host "Cleaning up local bundle..." -ForegroundColor Cyan
-Remove-Item $TAR_FILE
+if (Test-Path $TAR_FILE) { Remove-Item $TAR_FILE -Force -ErrorAction SilentlyContinue }
 
 Write-Host "Deployment complete!" -ForegroundColor Green

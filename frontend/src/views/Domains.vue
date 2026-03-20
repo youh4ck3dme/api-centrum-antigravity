@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { RefreshCcw } from 'lucide-vue-next';
+import { RefreshCcw, Globe } from 'lucide-vue-next';
 import api from "../api/api";
 
 // Sub-components
@@ -162,38 +162,38 @@ onMounted(fetchDomains);
 </script>
 
 <template>
-  <div class="flex-1 p-6 lg:p-10 overflow-y-auto custom-scrollbar relative animate-in fade-in slide-in-from-bottom-4 duration-700">
+  <div class="flex-1 p-4 lg:p-8 overflow-y-auto custom-scrollbar relative animate-in fade-in slide-in-from-bottom-4 duration-700">
     
     <!-- Hero Header -->
-    <header class="relative z-10 flex flex-col md:flex-row md:items-end justify-between mb-12">
-      <div class="space-y-4">
+    <header class="relative z-10 flex flex-col md:flex-row md:items-end justify-between mb-10">
+      <div class="space-y-3">
         <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/5 border border-black/10 shadow-sm">
-            <span class="w-1.5 h-1.5 rounded-full bg-primary-indigo shadow-[0_0_8px_rgba(0,113,227,0.3)] anim-pulse"></span>
-            <span class="text-[9px] uppercase font-black text-text-dim tracking-[0.2em]">Registry Mesh: Optimized</span>
+          <div class="flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/5 border border-white/5 shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-accent shadow-[0_0_8px_rgba(245,158,11,0.4)] anim-pulse"></span>
+            <span class="text-[8px] font-mono text-gray-600 uppercase tracking-widest">Registry Mesh: Optimized</span>
           </div>
-          <span v-if="domains.length" class="text-text-dim text-[9px] uppercase tracking-widest font-bold">
+          <span v-if="domains.length" class="text-gray-600 text-[8px] font-mono uppercase tracking-widest">
             {{ wsDomains.length }} Websupport · {{ forpsiDomains.length }} Forpsi
           </span>
         </div>
-        <h1 class="text-4xl lg:text-7xl font-black text-text-main tracking-tighter leading-none">Správa Domén</h1>
-        <p class="text-text-dim text-lg font-medium tracking-tight mt-2">
-          Komplexná správa DNS záznamov a portfólia sieťových identít.
+        <h1 class="text-4xl lg:text-6xl font-bold text-white tracking-tight leading-none italic">Správa Domén</h1>
+        <p class="text-gray-600 text-sm font-medium tracking-tight mt-2">
+          Komplexná správa DNS záznamov a sieťových identít.
         </p>
       </div>
 
-      <div class="mt-8 md:mt-0 flex items-center gap-4">
-        <div class="flex p-1.5 glass-panel rounded-2xl border border-black/5 shadow-premium overflow-hidden h-14 items-center">
+      <div class="mt-6 md:mt-0 flex items-center gap-3">
+        <div class="flex p-1 bg-white/5 rounded-xl border border-white/5 items-center">
           <button 
-            class="px-8 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-            :class="mainView === 'domains' ? 'bg-primary-indigo text-white shadow-lg' : 'text-text-dim hover:text-text-main'"
+            class="px-5 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all"
+            :class="mainView === 'domains' ? 'bg-white text-black shadow-lg' : 'text-gray-600 hover:text-white'"
             @click="mainView = 'domains'"
           >
             Nódy
           </button>
           <button 
-            class="px-8 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-            :class="mainView === 'portfolio' ? 'bg-primary-indigo text-white shadow-lg' : 'text-text-dim hover:text-text-main'"
+            class="px-5 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all"
+            :class="mainView === 'portfolio' ? 'bg-white text-black shadow-lg' : 'text-gray-600 hover:text-white'"
             @click="switchToPortfolio"
           >
             Portfolio
@@ -202,11 +202,11 @@ onMounted(fetchDomains);
 
         <button 
           @click="mainView === 'domains' ? fetchDomains() : switchToPortfolio(true)" 
-          class="w-14 h-14 flex items-center justify-center rounded-2xl glass-panel text-text-dim hover:text-text-main transition-all shadow-premium hover:scale-105 active:scale-95 group"
+          class="w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 text-gray-600 hover:text-white transition-all border border-white/5"
           :disabled="loading || portfolioLoading"
         >
           <RefreshCcw 
-            class="w-5 h-5 transition-colors"
+            class="w-4 h-4 transition-colors"
             :class="{ 'animate-spin': loading || portfolioLoading }"
           />
         </button>
@@ -216,7 +216,7 @@ onMounted(fetchDomains);
     <!-- ── Domains view ── -->
     <template v-if="mainView === 'domains'">
       <div v-if="loading && !domains.length" class="flex flex-col items-center justify-center p-32 gap-6">
-        <div class="w-12 h-12 border-4 border-black/5 border-t-primary-indigo rounded-full animate-spin"></div>
+        <div class="w-12 h-12 border-4 border-border-subtle border-t-primary-indigo rounded-full animate-spin"></div>
         <span class="text-text-dim text-[10px] font-bold uppercase tracking-[0.3em]">Načítavam domény...</span>
       </div>
 
@@ -246,10 +246,10 @@ onMounted(fetchDomains);
             @sentinel-fixed="handleSentinelFixed"
           />
           
-          <div v-if="selectedDomain && !selectedDomainObj?.readonly" class="border-t border-black/5 bg-black/[0.02] p-4">
+          <div v-if="selectedDomain && !selectedDomainObj?.readonly" class="border-t border-border-subtle bg-overlay-hover p-4">
              <div class="flex items-center gap-4 justify-center">
                 <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">Doplnkové moduly</span>
-                <div class="h-[1px] flex-1 bg-black/5"></div>
+                <div class="h-[1px] flex-1 bg-border-subtle"></div>
              </div>
              <div class="mt-4">
                 <FTPPanel 

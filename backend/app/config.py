@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # OpenAI (GPT-4) for DNS Autopilot
     OPENAI_API_KEY: str = ""
 
+    # VPS Credentials for general management
+    VPS_HOST: str = ""
+    VPS_USER: str = ""
+    VPS_PASS: str = ""
+
     # Defaults for local development
     ALLOWED_HOSTS: str = "localhost,127.0.0.1,0.0.0.0,localhost:8000,localhost:3000,testserver"
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"

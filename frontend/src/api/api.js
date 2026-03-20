@@ -14,7 +14,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    // Auth bypass: Do not reload on 401
+    if (err.response?.status === 401) {
+      localStorage.removeItem("access_token");
+      // Ak sme na klientskej strane, môžeme vyvolať reload pre reset stavu
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
+    }
     return Promise.reject(err);
   }
 );

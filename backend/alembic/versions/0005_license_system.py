@@ -1,7 +1,7 @@
 """Add license system tables
 
-Revision ID: 0005_license_system
-Revises: 0004_create_threats_table
+Revision ID: 0005
+Revises: 0004
 Create Date: 2026-03-09 02:55:00.000000
 
 """
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '0005_license_system'
-down_revision = '0004_create_threats_table'
+revision = '0005'
+down_revision = '0004'
 branch_labels = None
 depends_on = None
 
